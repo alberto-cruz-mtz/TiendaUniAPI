@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "java-spring-boot": {
+      "source": "pluginagentmarketplace/custom-plugin-java",
+      "sourceType": "github",
+      "skillPath": "skills/java-spring-boot/SKILL.md",
+      "computedHash": "93e5a124d8d5f29e0b19692d431452f8b6c2a2e1c3e05c0f93f07fb2473ab32a"
+    },
+    "spring-data-jpa": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-kit-java/skills/spring-data-jpa/SKILL.md",
+      "computedHash": "be931b019eabb76dcdb72620f982997e6e6b4b942e794a797c1afe02e59aa592"
+    }
+  }
+}
