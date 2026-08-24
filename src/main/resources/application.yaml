@@ -1,3 +1,13 @@
 spring:
   application:
     name: TiendaUniAPI
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: root
+    password: 1234
+    url: jdbc:postgresql://localhost:5432/tiendauni
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
