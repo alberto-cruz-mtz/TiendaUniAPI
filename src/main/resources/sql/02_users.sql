@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS "users"
     "password"      VARCHAR(200)     NOT NULL,
     "first_name"    VARCHAR(60)      NOT NULL,
     "last_name"     VARCHAR(60)      NOT NULL,
+    "verified"      BOOLEAN          NOT NULL DEFAULT FALSE,
     "created_at"    TIMESTAMPTZ      NOT NULL DEFAULT now(),
     "updated_at"    TIMESTAMPTZ      NOT NULL DEFAULT now(),
     "university_id" UUID             NOT NULL REFERENCES universities (id) ON DELETE CASCADE
@@ -35,6 +36,10 @@ CREATE TABLE IF NOT EXISTS "user_role"
     "rol_id"  INTEGER NOT NULL REFERENCES roles (id) ON DELETE CASCADE,
     PRIMARY KEY ("user_id", "rol_id")
 );
+
+-- Migration: add verified column to existing users table (idempotent).
+ALTER TABLE "users"
+    ADD COLUMN IF NOT EXISTS "verified" BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS "refresh_tokens"
 (
