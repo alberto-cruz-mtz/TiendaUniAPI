@@ -1,7 +1,7 @@
 package alberto.cruz.tiendauniapi.service.exception;
 
-public class EmailAddressAlreadyRegistered extends RuntimeException {
-    public EmailAddressAlreadyRegistered() {
+public class EmailAddressAlreadyRegisteredException extends RuntimeException {
+    public EmailAddressAlreadyRegisteredException() {
         super("Este correo ya está registrado. Por favor, use una dirección de correo diferente.");
     }
 }
