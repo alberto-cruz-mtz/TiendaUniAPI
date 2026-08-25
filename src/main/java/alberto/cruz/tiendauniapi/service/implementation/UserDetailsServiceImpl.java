@@ -19,7 +19,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public @NonNull UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
         UserProjection userEntity = userRepository.findUserByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("No se encontró ninguna cuenta con la dirección de correo electrónico: " + username));
 
         return this.createUserDetails(userEntity);
     }
