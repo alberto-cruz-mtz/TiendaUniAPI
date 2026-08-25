@@ -1,8 +1,8 @@
 package alberto.cruz.tiendauniapi.service.implementation;
 
-import alberto.cruz.tiendauniapi.persistence.model.AuthenticatedUser;
 import alberto.cruz.tiendauniapi.persistence.projection.UserProjection;
 import alberto.cruz.tiendauniapi.persistence.repository.UserRepository;
+import alberto.cruz.tiendauniapi.utils.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,18 +18,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public @NonNull UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
-        UserProjection userEntity = userRepository.findUserByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("No se encontró ninguna cuenta con la dirección de correo electrónico: " + username));
-
-        return this.createUserDetails(userEntity);
+        UserProjection userEntity = this.findUserByEmail(username);
+        return UserMapper.toAuthenticatedUser(userEntity);
     }
 
-    private AuthenticatedUser createUserDetails(UserProjection user) {
-        return new AuthenticatedUser(
-                user.getEmail(),
-                user.getPassword(),
-                user.getId(),
-                user.getUniversityId()
-        );
+    private UserProjection findUserByEmail(String email) {
+        return userRepository.findUserEntitiesByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("No se encontró ninguna cuenta con la dirección de correo electrónico: " + email));
     }
 }
