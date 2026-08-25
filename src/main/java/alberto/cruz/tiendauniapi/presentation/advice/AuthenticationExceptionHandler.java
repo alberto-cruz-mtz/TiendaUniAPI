@@ -3,6 +3,7 @@ package alberto.cruz.tiendauniapi.presentation.advice;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegisteredException;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressNotFound;
 import alberto.cruz.tiendauniapi.service.exception.EmailDomainNotAllowedException;
+import alberto.cruz.tiendauniapi.service.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class AuthenticationExceptionHandler {
         return ResponseEntity.status(status).body(problemDetail);
     }
 
-    @ExceptionHandler({EmailAddressNotFound.class, UsernameNotFoundException.class})
+    @ExceptionHandler({EmailAddressNotFound.class, UsernameNotFoundException.class, UserNotFoundException.class})
     public ResponseEntity<ProblemDetail> handleUserNotFoundException(RuntimeException ex) {
         HttpStatus status = HttpStatus.NOT_FOUND;
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
