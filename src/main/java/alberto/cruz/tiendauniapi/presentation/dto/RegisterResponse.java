@@ -9,8 +9,6 @@ public record RegisterResponse(
         boolean isVerified,
 
         @JsonIgnore
-        String accessToken,
-        @JsonIgnore
-        String refreshToken
+        TokenBundle tokenBundle
 ) {
 }

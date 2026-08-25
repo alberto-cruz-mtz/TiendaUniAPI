@@ -12,8 +12,6 @@ public record AuthenticationResponse(
         boolean isVerified,
 
         @JsonIgnore
-        String accessToken,
-        @JsonIgnore
-        String refreshToken
+        TokenBundle tokenBundle
 ) {
 }
