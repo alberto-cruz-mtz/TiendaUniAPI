@@ -54,7 +54,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setPassword(encodedPassword);
         user.setFirstName(request.firstName());
         user.setLastName(request.lastName());
-        user.setUniversityId(university);
+        user.setUniversity(university);
 
         // 5. Guardar el usuario en la BD
         UserEntity savedUser = userRepository.save(user);
