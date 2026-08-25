@@ -1,12 +1,10 @@
 package alberto.cruz.tiendauniapi.service.implementation;
 
-import alberto.cruz.tiendauniapi.common.ResourceNotFoundException;
-import alberto.cruz.tiendauniapi.common.UnknownException;
 import alberto.cruz.tiendauniapi.persistence.entity.RefreshTokenEntity;
 import alberto.cruz.tiendauniapi.persistence.repository.RefreshTokenRepository;
-import alberto.cruz.tiendauniapi.presentation.dto.TokenBundle;
 import alberto.cruz.tiendauniapi.service.exception.ExpiredRefreshTokenException;
 import alberto.cruz.tiendauniapi.service.exception.RefreshTokenNotFoundException;
+import alberto.cruz.tiendauniapi.service.exception.RevokedRefreshTokenException;
 import alberto.cruz.tiendauniapi.service.interfaces.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -81,7 +79,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private void revokeAllActiveTokensByUserId(boolean isRevoked, UUID userId) {
         if (isRevoked) {
             repository.markedLikeRevokedAllTokensByUserId(userId);
-            throw new UnknownException("Este token de refresco ha sido revocado. Por favor, inicia sesión nuevamente para obtener un nuevo token.");
+            throw new RevokedRefreshTokenException();
         }
     }
 
