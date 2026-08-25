@@ -17,14 +17,12 @@ import java.net.URI;
 @RestControllerAdvice
 public class AuthenticationExceptionHandler {
 
-    private static final String DOMAIN_URI = "https://tiendauniapi.com/problems";
-
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleAuthenticationException() {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, "No fue posible completar la autenticación. Por favor, verifique sus credenciales e intente nuevamente.");
         problemDetail.setTitle("Bad Credentials");
-        problemDetail.setType(URI.create(DOMAIN_URI + "/bad-credentials"));
+        problemDetail.setType(URI.create(GlobalExceptionHandler.DOMAIN_URI + "/bad-credentials"));
         return ResponseEntity.status(status).body(problemDetail);
     }
 
@@ -33,7 +31,7 @@ public class AuthenticationExceptionHandler {
         HttpStatus status = HttpStatus.NOT_FOUND;
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
         problemDetail.setTitle("User Not Found");
-        problemDetail.setType(URI.create(DOMAIN_URI + "/user-not-found"));
+        problemDetail.setType(URI.create(GlobalExceptionHandler.DOMAIN_URI + "/user-not-found"));
         return ResponseEntity.status(status).body(problemDetail);
     }
 
@@ -42,7 +40,7 @@ public class AuthenticationExceptionHandler {
         HttpStatus status = HttpStatus.CONFLICT;
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, exception.getMessage());
         problemDetail.setTitle("Email Address Already Registered");
-        problemDetail.setType(URI.create(DOMAIN_URI + "/email-already-registered"));
+        problemDetail.setType(URI.create(GlobalExceptionHandler.DOMAIN_URI + "/email-already-registered"));
         return ResponseEntity.status(status).body(problemDetail);
     }
 
@@ -51,7 +49,7 @@ public class AuthenticationExceptionHandler {
         HttpStatus status = HttpStatus.BAD_REQUEST;
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, exception.getMessage());
         problemDetail.setTitle("Email Domain Not Allowed");
-        problemDetail.setType(URI.create(DOMAIN_URI + "/email-domain-not-allowed"));
+        problemDetail.setType(URI.create(GlobalExceptionHandler.DOMAIN_URI + "/email-domain-not-allowed"));
         return ResponseEntity.status(status).body(problemDetail);
     }
 }
