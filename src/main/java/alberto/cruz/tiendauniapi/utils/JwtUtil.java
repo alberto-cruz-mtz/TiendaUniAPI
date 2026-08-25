@@ -13,6 +13,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import alberto.cruz.tiendauniapi.persistence.model.AuthenticatedUser;
 
 import java.time.Instant;
 
@@ -34,9 +35,10 @@ public class JwtUtil {
 
     public String generateToken(Authentication authentication) {
         Instant issuedAt = Instant.now();
-        String email = authentication.getName();
+        AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
 
-        return this.createToken(email, issuedAt);
+        assert user != null;
+        return this.createToken(user, issuedAt);
     }
 
     public DecodedJWT validateToken(String token) {
@@ -59,13 +61,15 @@ public class JwtUtil {
         }
     }
 
-    private String createToken(String email, Instant issuedAt) {
+    private String createToken(AuthenticatedUser user, Instant issuedAt) {
         return JWT.create()
                 .withIssuer(issuer)
-                .withSubject(email)
+                .withSubject(user.getUsername())
                 .withIssuedAt(issuedAt)
                 .withNotBefore(issuedAt)
                 .withExpiresAt(issuedAt.plusSeconds(expirationTime))
+                .withClaim("userId", user.getUserId().toString())
+                .withClaim("tenantId", user.getUniversityId().toString())
                 .sign(hmac256Algorithm);
     }
 }
