@@ -8,7 +8,7 @@ import alberto.cruz.tiendauniapi.presentation.dto.AuthenticationResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.RegisterRequest;
 import alberto.cruz.tiendauniapi.presentation.dto.RegisterResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.TokenBundle;
-import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegistered;
+import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegisteredException;
 import alberto.cruz.tiendauniapi.service.exception.EmailDomainNotAllowedException;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressNotFound;
 import alberto.cruz.tiendauniapi.service.interfaces.AuthenticationService;
@@ -72,7 +72,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private void ensureThatEmailAddressIsNotRegistered(String email) {
         if (userRepository.existsByEmail(email)) {
-            throw new EmailAddressAlreadyRegistered();
+            throw new EmailAddressAlreadyRegisteredException();
         }
     }
 
