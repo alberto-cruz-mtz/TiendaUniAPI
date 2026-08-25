@@ -1,7 +1,9 @@
 package alberto.cruz.tiendauniapi.service.implementation;
 
+import alberto.cruz.tiendauniapi.common.UnknownException;
 import alberto.cruz.tiendauniapi.persistence.entity.UniversityEntity;
 import alberto.cruz.tiendauniapi.persistence.entity.UserEntity;
+import alberto.cruz.tiendauniapi.persistence.model.AuthenticatedUser;
 import alberto.cruz.tiendauniapi.persistence.repository.UniversityRepository;
 import alberto.cruz.tiendauniapi.persistence.repository.UserRepository;
 import alberto.cruz.tiendauniapi.presentation.dto.AuthenticationResponse;
@@ -12,15 +14,15 @@ import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegistered
 import alberto.cruz.tiendauniapi.service.exception.EmailDomainNotAllowedException;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressNotFound;
 import alberto.cruz.tiendauniapi.service.interfaces.AuthenticationService;
+import alberto.cruz.tiendauniapi.service.interfaces.RefreshTokenService;
 import alberto.cruz.tiendauniapi.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.UUID;
@@ -31,12 +33,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final UserRepository userRepository;
     private final UniversityRepository universityRepository;
+
+    private final RefreshTokenService refreshTokenService;
     private final JwtUtil jwtUtil;
 
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
 
     @Override
+    @Transactional
     public RegisterResponse register(RegisterRequest request) {
         this.ensureThatEmailAddressIsNotRegistered(request.email());
 
@@ -46,13 +51,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         UserEntity savedUser = userRepository.save(user);
 
-        Authentication authenticatedToken = this.createAuthentication(savedUser.getEmail());
+        Authentication authenticatedToken = this.createAuthentication(savedUser, university.getId());
         TokenBundle tokens = this.generateAccessAndRefreshToken(authenticatedToken, savedUser.getId());
 
         return this.createRegisterResponse(savedUser, tokens);
     }
 
     @Override
+    @Transactional
     public AuthenticationResponse authenticate(String email, String password) {
         Authentication authentication = this.authenticateUserByCredentials(email, password);
 
@@ -65,7 +71,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private String extractEmailDomain(String email) {
         int atIndex = email.indexOf('@');
         if (atIndex < 0 || atIndex == email.length() - 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El correo no tiene un dominio válido");
+            throw new UnknownException("El correo electrónico proporcionado no es válido. Asegúrese de que contenga un dominio después del símbolo '@'.");
         }
         return email.substring(atIndex + 1).toLowerCase();
     }
@@ -105,23 +111,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private TokenBundle generateAccessAndRefreshToken(Authentication authentication, UUID id) {
         String accessToken = jwtUtil.generateToken(authentication);
-
-        // TODO: Implementar la generación de refresh token con persistencia en BD
-        String refreshToken = UUID.randomUUID().toString();
+        String refreshToken = refreshTokenService.generateToken(id);
 
         return new TokenBundle(accessToken, refreshToken);
     }
 
-    private Authentication createAuthentication(String email) {
-        return this.createAuthentication(email, null);
-    }
+    private Authentication createAuthentication(UserEntity user, UUID universityId) {
+        AuthenticatedUser authenticatedUser = new AuthenticatedUser(user.getEmail(), user.getPassword(), user.getId(), universityId);
 
-    private Authentication createAuthentication(String email, String password) {
-        return new UsernamePasswordAuthenticationToken(email, password, Collections.emptyList());
+        return new UsernamePasswordAuthenticationToken(authenticatedUser, null, Collections.emptyList());
     }
 
     private Authentication authenticateUserByCredentials(String email, String password) {
-        var credentials = this.createAuthentication(email, password);
+        var credentials = new UsernamePasswordAuthenticationToken(email, password);
 
         // internamente, carga el UserDetails,
         // compara la contraseña en texto plano contra el hash de la BD
