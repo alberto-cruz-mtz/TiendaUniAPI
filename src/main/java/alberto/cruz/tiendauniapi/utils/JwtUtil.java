@@ -11,7 +11,6 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import alberto.cruz.tiendauniapi.persistence.model.AuthenticatedUser;
 
@@ -33,12 +32,10 @@ public class JwtUtil {
         this.hmac256Algorithm = Algorithm.HMAC256(secretKey);
     }
 
-    public String generateToken(Authentication authentication) {
+    public String generateToken(AuthenticatedUser authentication) {
         Instant issuedAt = Instant.now();
-        AuthenticatedUser user = (AuthenticatedUser) authentication.getPrincipal();
 
-        assert user != null;
-        return this.createToken(user, issuedAt);
+        return this.createToken(authentication, issuedAt);
     }
 
     public DecodedJWT validateToken(String token) {
