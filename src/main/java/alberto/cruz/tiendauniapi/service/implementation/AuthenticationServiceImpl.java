@@ -81,7 +81,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public AuthenticationResponse authenticate(String email, String password) {
-        return null;
+        // 1. Construir el token de autenticación (sin authorities: todavía no está validado)
+        var authenticationToken = new UsernamePasswordAuthenticationToken(email, password, Collections.emptyList());
+
+        // 2. Delegar al AuthenticationManager: internamente carga el UserDetails,
+        //    compara la contraseña en texto plano contra el hash de la BD
+        //    y lanza BadCredentialsException si no coincide.
+        var authenticatedToken = authenticationManager.authenticate(authenticationToken);
+
+        // 3. Generar el access token JWT a partir de la autenticación válida
+        String accessToken = jwtUtil.generateToken(authenticatedToken);
+
+        // 4. Generar un refresh token (fallback hasta que llegue la implementación definitiva)
+        String refreshToken = UUID.randomUUID().toString();
+
+        // 5. Hidratar la respuesta con los datos del usuario
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Usuario autenticado pero no encontrado en la base de datos"));
+
+        return new AuthenticationResponse(
+                user.getId(),
+                null,
+                user.getFirstName(),
+                user.getLastName(),
+                false,
+                accessToken,
+                refreshToken);
     }
 
     private String extractEmailDomain(String email) {

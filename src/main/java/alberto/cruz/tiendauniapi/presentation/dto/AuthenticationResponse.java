@@ -1,5 +1,7 @@
 package alberto.cruz.tiendauniapi.presentation.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.UUID;
 
 public record AuthenticationResponse(
@@ -7,6 +9,11 @@ public record AuthenticationResponse(
         String avatarUrl,
         String firstName,
         String lastName,
-        boolean isVerified
+        boolean isVerified,
+
+        @JsonIgnore
+        String accessToken,
+        @JsonIgnore
+        String refreshToken
 ) {
 }
