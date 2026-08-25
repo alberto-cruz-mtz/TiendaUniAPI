@@ -7,4 +7,6 @@ public interface RefreshTokenService {
     String generateToken(UUID userId);
 
     String refreshToken(UUID refreshToken, UUID userId);
+
+    void revokeToken(UUID refreshToken, UUID userId);
 }

@@ -4,6 +4,9 @@ import alberto.cruz.tiendauniapi.common.ResourceNotFoundException;
 import alberto.cruz.tiendauniapi.common.UnknownException;
 import alberto.cruz.tiendauniapi.persistence.entity.RefreshTokenEntity;
 import alberto.cruz.tiendauniapi.persistence.repository.RefreshTokenRepository;
+import alberto.cruz.tiendauniapi.presentation.dto.TokenBundle;
+import alberto.cruz.tiendauniapi.service.exception.ExpiredRefreshTokenException;
+import alberto.cruz.tiendauniapi.service.exception.RefreshTokenNotFoundException;
 import alberto.cruz.tiendauniapi.service.interfaces.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -47,9 +50,17 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         return updatedRefreshToken.getId().toString();
     }
 
+    @Override
+    @Transactional
+    public void revokeToken(UUID refreshToken, UUID userId) {
+        RefreshTokenEntity refreshTokenEntity = this.findRefreshTokenByCurrentTokenAndUserId(refreshToken, userId);
+        refreshTokenEntity.setRevoked(true);
+        repository.save(refreshTokenEntity);
+    }
+
     private RefreshTokenEntity findRefreshTokenByCurrentTokenAndUserId(UUID refreshToken, UUID userId) {
         return repository.findByTokenAndUserId(refreshToken, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("No se encontró el token de refresco proporcionado. Por favor, inicia sesión nuevamente para obtener un nuevo token."));
+                .orElseThrow(RefreshTokenNotFoundException::new);
     }
 
     private RefreshTokenEntity changeCurrentRefreshTokenForNewOne(RefreshTokenEntity refreshToken) {
@@ -63,7 +74,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             refreshToken.setRevoked(true);
             repository.save(refreshToken);
 
-            throw new UnknownException("Este token de refresco ha expirado. Por favor, inicia sesión nuevamente para obtener un nuevo token.");
+            throw new ExpiredRefreshTokenException();
         }
     }
 

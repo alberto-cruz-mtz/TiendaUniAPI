@@ -4,6 +4,7 @@ import alberto.cruz.tiendauniapi.common.UnknownException;
 import alberto.cruz.tiendauniapi.persistence.entity.UniversityEntity;
 import alberto.cruz.tiendauniapi.persistence.entity.UserEntity;
 import alberto.cruz.tiendauniapi.persistence.model.AuthenticatedUser;
+import alberto.cruz.tiendauniapi.persistence.projection.UserProjection;
 import alberto.cruz.tiendauniapi.persistence.repository.UniversityRepository;
 import alberto.cruz.tiendauniapi.persistence.repository.UserRepository;
 import alberto.cruz.tiendauniapi.presentation.dto.AuthenticationResponse;
@@ -13,9 +14,11 @@ import alberto.cruz.tiendauniapi.presentation.dto.TokenBundle;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegisteredException;
 import alberto.cruz.tiendauniapi.service.exception.EmailDomainNotAllowedException;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressNotFound;
+import alberto.cruz.tiendauniapi.service.exception.UserNotFoundException;
 import alberto.cruz.tiendauniapi.service.interfaces.AuthenticationService;
 import alberto.cruz.tiendauniapi.service.interfaces.RefreshTokenService;
 import alberto.cruz.tiendauniapi.utils.JwtUtil;
+import alberto.cruz.tiendauniapi.utils.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -51,8 +55,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         UserEntity savedUser = userRepository.save(user);
 
-        Authentication authenticatedToken = this.createAuthentication(savedUser, university.getId());
-        TokenBundle tokens = this.generateAccessAndRefreshToken(authenticatedToken, savedUser.getId());
+        AuthenticatedUser authenticatedUser = UserMapper.toAuthenticatedUser(savedUser);
+        TokenBundle tokens = this.generateAccessAndRefreshToken(authenticatedUser, savedUser.getId());
 
         return this.createRegisterResponse(savedUser, tokens);
     }
@@ -66,6 +70,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         TokenBundle tokens = this.generateAccessAndRefreshToken(authentication, user.getId());
 
         return this.createAuthenticationResponse(user, tokens);
+    }
+
+    @Override
+    @Transactional
+    public TokenBundle refreshTokenAndGenerateAccessToken(UUID refreshToken, UUID userId) {
+        UserProjection user = userRepository.findUserEntitiesById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        String newRefreshToken = refreshTokenService.refreshToken(refreshToken, userId);
+        AuthenticatedUser authenticatedUser = UserMapper.toAuthenticatedUser(user);
+
+        String accessToken = jwtUtil.generateToken(authenticatedUser);
+        return new TokenBundle(accessToken, newRefreshToken);
+    }
+
+    @Override
+    @Transactional
+    public void logout(UUID refreshToken, UUID userId) {
+        refreshTokenService.revokeToken(refreshToken, userId);
     }
 
     private String extractEmailDomain(String email) {
@@ -109,17 +132,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
     }
 
-    private TokenBundle generateAccessAndRefreshToken(Authentication authentication, UUID id) {
+    private TokenBundle generateAccessAndRefreshToken(AuthenticatedUser authentication, UUID id) {
         String accessToken = jwtUtil.generateToken(authentication);
         String refreshToken = refreshTokenService.generateToken(id);
 
         return new TokenBundle(accessToken, refreshToken);
     }
 
-    private Authentication createAuthentication(UserEntity user, UUID universityId) {
-        AuthenticatedUser authenticatedUser = new AuthenticatedUser(user.getEmail(), user.getPassword(), user.getId(), universityId);
-
-        return new UsernamePasswordAuthenticationToken(authenticatedUser, null, Collections.emptyList());
+    private TokenBundle generateAccessAndRefreshToken(Authentication authentication, UUID id) {
+        if (authentication.getPrincipal() instanceof AuthenticatedUser authenticatedUser) {
+            return generateAccessAndRefreshToken(authenticatedUser, id);
+        } else {
+            throw new UnknownException("El principal de autenticación no es del tipo esperado.");
+        }
     }
 
     private Authentication authenticateUserByCredentials(String email, String password) {
