@@ -239,18 +239,18 @@ Chain strategy: stacked-to-main
 
 ### PR 5 — Endpoints de perfil
 
-- [ ] T-AUTH-001 — Añadir firma `void updateAvatarKey(UUID userId, String key);` a `AuthenticationService`. <!-- sdd-owner: implementation -->
+- [x] T-AUTH-001 — Añadir firma `void updateAvatarKey(UUID userId, String key);` a `AuthenticationService`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/interfaces/AuthenticationService.java` (modificado).
   - **Líneas**: ~5 added.
   - **Notas**: cierra la decisión cerrada en `proposal.md` (no crear `ProfileService` aún).
 
-- [ ] T-AUTH-002 — Implementar `updateAvatarKey(UUID userId, String key)` en `AuthenticationServiceImpl` con `@Transactional`. `userRepository.findById(userId).orElseThrow(UserNotFoundException::new)`; `entity.setAvatarUrl(key)`; `userRepository.save(entity)`. <!-- sdd-owner: implementation -->
+- [x] T-AUTH-002 — Implementar `updateAvatarKey(UUID userId, String key)` en `AuthenticationServiceImpl` con `@Transactional`. `userRepository.findById(userId).orElseThrow(UserNotFoundException::new)`; `entity.setAvatarUrl(key)`; `userRepository.save(entity)`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/implementation/AuthenticationServiceImpl.java` (modificado).
   - **Líneas**: ~15 added.
   - **ACs**: AC-AVATAR-1, AC-AVATAR-3, AC-AVATAR-4, AC-ERR-4.
   - **Notas**: `UserNotFoundException` la maneja `AuthenticationExceptionHandler` existente (Decisión 12 de `design.md`).
 
-- [ ] T-AUTH-003 — Crear test para `updateAvatarKey` en el archivo de tests existente de `AuthenticationServiceImpl` (o nuevo archivo si no existe): caso feliz + caso `userId` no encontrado. <!-- sdd-owner: implementation -->
+- [x] T-AUTH-003 — Crear test para `updateAvatarKey` en el archivo de tests existente de `AuthenticationServiceImpl` (o nuevo archivo si no existe): caso feliz + caso `userId` no encontrado. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/service/implementation/AuthenticationServiceImplTest.java` (nuevo o modificado, según estado actual).
   - **Líneas**: ~50 added.
   - **Notas**: si no existe test del impl, crear archivo nuevo.
