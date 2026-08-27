@@ -32,7 +32,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public String generateToken(UUID userId) {
         RefreshTokenEntity refreshTokenEntity = this.createRefreshToken(userId);
         RefreshTokenEntity savedRefreshToken = repository.save(refreshTokenEntity);
-        return savedRefreshToken.getId().toString();
+        return savedRefreshToken.getToken().toString();
     }
 
     @Override
@@ -45,7 +45,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         RefreshTokenEntity updatedRefreshToken = this.changeCurrentRefreshTokenForNewOne(refreshTokenEntity);
 
-        return updatedRefreshToken.getId().toString();
+        return updatedRefreshToken.getToken().toString();
     }
 
     @Override
