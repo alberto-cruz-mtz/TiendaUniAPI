@@ -255,17 +255,17 @@ Chain strategy: stacked-to-main
   - **Líneas**: ~50 added.
   - **Notas**: si no existe test del impl, crear archivo nuevo.
 
-- [ ] T-CTL-001 — Crear `ProfilePresignedUrlController` (`@RestController @RequestMapping("/profiles/presigned-url") @RequiredArgsConstructor`). Endpoint `POST` que recibe `@Valid @RequestBody PresignedUrlProfileRequest` y delega en `presignedUrlService.generateProfilePresignedUrl(request, BucketTarget.PROFILE)`. Devuelve `200 OK` con `PresignedUrlProfileResponse(presignedUrl.url())`. <!-- sdd-owner: implementation -->
+- [x] T-CTL-001 — Crear `ProfilePresignedUrlController` (`@RestController @RequestMapping("/profiles/presigned-url") @RequiredArgsConstructor`). Endpoint `POST` que recibe `@Valid @RequestBody PresignedUrlProfileRequest` y delega en `presignedUrlService.generateProfilePresignedUrl(request, BucketTarget.PROFILE)`. Devuelve `200 OK` con `PresignedUrlProfileResponse(presignedUrl.url())`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/presentation/controller/ProfilePresignedUrlController.java` (nuevo).
   - **Líneas**: ~40.
   - **ACs**: AC-PROF-1, AC-PROF-3, AC-PROF-4, AC-PROF-5.
 
-- [ ] T-CTL-002 — Crear `ProfileAvatarController` (`@RestController @RequestMapping("/profiles/me/avatar") @RequiredArgsConstructor`). Endpoint `PATCH` que recibe `@Valid @RequestBody UpdateAvatarKeyRequest` y `@AuthenticationPrincipal AuthenticatedUser principal`. Delega en `authenticationService.updateAvatarKey(principal.getUserId(), request.key())`. Devuelve `204 No Content`. <!-- sdd-owner: implementation -->
+- [x] T-CTL-002 — Crear `ProfileAvatarController` (`@RestController @RequestMapping("/profiles/me/avatar") @RequiredArgsConstructor`). Endpoint `PATCH` que recibe `@Valid @RequestBody UpdateAvatarKeyRequest` y `@AuthenticationPrincipal AuthenticatedUser principal`. Delega en `authenticationService.updateAvatarKey(principal.getUserId(), request.key())`. Devuelve `204 No Content`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/presentation/controller/ProfileAvatarController.java` (nuevo).
   - **Líneas**: ~40.
   - **ACs**: AC-AVATAR-1, AC-AVATAR-2, AC-AVATAR-3, AC-AVATAR-4, AC-AVATAR-5.
 
-- [ ] T-CTL-004a — Crear `ProfilePresignedUrlControllerWebMvcTest` + `ProfileAvatarControllerWebMvcTest`. Casos: happy path perfil, mime inválido → 400, size > cap → 400, sin cookie → 401; happy path avatar, key inválida → 400, userId del principal no existe → 404, sin cookie → 401. <!-- sdd-owner: implementation -->
+- [x] T-CTL-004a — Crear `ProfilePresignedUrlControllerWebMvcTest` + `ProfileAvatarControllerWebMvcTest`. Casos: happy path perfil, mime inválido → 400, size > cap → 400, sin cookie → 401; happy path avatar, key inválida → 400, userId del principal no existe → 404, sin cookie → 401. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/presentation/controller/ProfilePresignedUrlControllerWebMvcTest.java` (nuevo); `src/test/java/alberto/cruz/tiendauniapi/presentation/controller/ProfileAvatarControllerWebMvcTest.java` (nuevo).
   - **Líneas**: ~160 (80 + 80).
   - **ACs**: AC-PROF-3, AC-PROF-4, AC-AVATAR-5, AC-AVATAR-6, AC-ERR-4.
