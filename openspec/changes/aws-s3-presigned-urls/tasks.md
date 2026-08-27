@@ -47,7 +47,7 @@ Chain strategy: stacked-to-main
 - **Líneas estimadas**: 365 (165 CFG + 200 MOD)
 - **Valor**: la app arranca con la nueva config AWS enlazada; `S3KeyGenerator` produce keys `profiles/<uuid>/<uuid>.<ext>` y `publications/<uuid>/<uuid>.<ext>`. No expone endpoints todavía.
 - **Verificación**: `AwsS3ConfigurationTest` carga contexto con props completas + verifica `endpointOverride` aplicado en ambos beans; test negativo `missingBucketProfileUrl_failsToStart`; `S3KeyGeneratorTest` cubre formatos de key.
-- **Dependencias**: ninguna (foundation). El test `TiendaUniApiApplicationTests` existente se mantiene verde con `@TestPropertySource` que setea las 7 props AWS como placeholder (incluido en T-CFG-006).
+- **Dependencias**: ninguna (foundation). El test `TiendaUniApiApplicationTests` existente se mantiene verde con `@TestPropertySource` que setea las 8 props AWS como placeholder (incluido en T-CFG-006).
 
 ### PR 2 — DTOs Request/Response
 - **Tasks**: T-DTO-001, T-DTO-002, T-DTO-003, T-DTO-004, T-DTO-005, T-DTO-006, T-DTO-007
@@ -93,19 +93,19 @@ Chain strategy: stacked-to-main
 
 ### PR 1 — Foundation
 
-- [x] T-CFG-001 — Crear `AwsS3Properties` record (`@ConfigurationProperties(prefix="app.aws.s3")`) con 7 componentes anotados `@NotBlank`. <!-- sdd-owner: implementation -->
+- [x] T-CFG-001 — Crear `AwsS3Properties` record (`@ConfigurationProperties(prefix="app.aws.s3")`) con 8 componentes anotados `@NotBlank`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/configuration/AwsS3Properties.java` (nuevo).
   - **Líneas**: ~25.
   - **ACs**: AC-CFG-1, AC-CFG-5.
   - **Notas**: primer `@ConfigurationProperties` del proyecto; sienta precedente en `configuration/`.
 
-- [x] T-CFG-002 — Crear `AwsS3Configuration` con `@Configuration`, `@EnableConfigurationProperties(AwsS3Properties.class)` y 2 `@Bean S3Presigner` (`profileS3Presigner`, `publicationS3Presigner`) que aplican `endpointOverride` desde `AwsS3Properties.bucketProfileUrl()` / `bucketPublicationUrl()`. Usar factory method estático privado `buildPresigner(properties, bucketUrl)`. <!-- sdd-owner: implementation -->
+- [x] T-CFG-002 — Crear `AwsS3Configuration` con `@Configuration`, `@EnableConfigurationProperties(AwsS3Properties.class)` y 2 `@Bean S3Presigner` (`profileS3Presigner`, `publicationS3Presigner`) que comparten el mismo `endpointOverride` desde `AwsS3Properties.endpoint()` (URL del provider — AWS S3 o Cloudflare R2). El bucket se identifica vía `PutObjectRequest.bucket(...)` en cada `presignPutObject(...)`. Usar factory method estático privado `buildPresigner(properties)`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/configuration/AwsS3Configuration.java` (nuevo).
   - **Líneas**: ~50.
   - **ACs**: AC-CFG-1, AC-CFG-3, AC-CFG-4.
   - **Notas**: `AwsBasicCredentials.create(accessKeyId, secretAccessKey)` + `StaticCredentialsProvider`. Sin lógica condicional por proveedor (AC-MIG-2, AC-MIG-3).
 
-- [x] T-CFG-003 — Añadir bloque `app.aws.s3.*` en `application.yaml` (base) referenciando las 7 env vars con default vacío. <!-- sdd-owner: implementation -->
+- [x] T-CFG-003 — Añadir bloque `app.aws.s3.*` en `application.yaml` (base) referenciando las 8 env vars con default vacío. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/resources/application.yaml` (modificado).
   - **Líneas**: ~10 added.
   - **ACs**: AC-CFG-1, AC-CFG-2.
@@ -120,7 +120,7 @@ Chain strategy: stacked-to-main
   - **Líneas**: ~10 added.
   - **ACs**: AC-CFG-2 (fail-fast).
 
-- [x] T-CFG-006 — Crear `AwsS3ConfigurationTest` con `ApplicationContextRunner`. Casos: props completas cargan contexto + ambos beans `S3Presigner` con `endpointOverride` correcto; prop ausente lanza `ConfigurationPropertiesBindException`. Adicionalmente, agregar `@TestPropertySource` a `TiendaUniApiApplicationTests` para mantener el smoke test verde. <!-- sdd-owner: implementation -->
+- [x] T-CFG-006 — Crear `AwsS3ConfigurationTest` con `ApplicationContextRunner`. Casos: props completas cargan contexto + ambos beans `S3Presigner` comparten `endpointOverride` cuyo host coincide con `endpoint` (no con bucket URL); prop ausente lanza `ConfigurationPropertiesBindException`. Adicionalmente, agregar `@TestPropertySource` a `TiendaUniApiApplicationTests` para mantener el smoke test verde. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/configuration/AwsS3ConfigurationTest.java` (nuevo); `src/test/java/alberto/cruz/tiendauniapi/TiendaUniApiApplicationTests.java` (modificado).
   - **Líneas**: ~60 added (test nuevo) + ~5 modified.
   - **ACs**: AC-CFG-1, AC-CFG-2, AC-CFG-3.
@@ -309,7 +309,7 @@ Chain strategy: stacked-to-main
 - [ ] Adquirir attempt con `gentle-ai sdd-attempt acquire` antes de cada slice y `settle` después; enrutar sólo por `proceed | blocked | complete`. <!-- sdd-owner: parent -->
 - [ ] Lanzar review nativo (`gentle-ai review status --next-transition`) después de cada slice fusionado; autorizar `review.capture-result`/`review.start` sólo desde la transición retornada. <!-- sdd-owner: parent -->
 - [ ] Mergear PR 1 → PR 2 → PR 3 → PR 4 → PR 5 → PR 6 a `main` (o tracker si el operador cambia a `feature-branch-chain`). <!-- sdd-owner: parent -->
-- [ ] Actualizar README con las 7 env vars AWS requeridas (referencia en `design.md`, fuera de código pero accionable). <!-- sdd-owner: parent -->
+- [ ] Actualizar README con las 8 env vars AWS requeridas (referencia en `design.md`, fuera de código pero accionable). <!-- sdd-owner: parent -->
 
 ## Estimación total
 
