@@ -35,7 +35,7 @@ public class AuthenticationController {
     public AuthenticationController(
             AuthenticationService authenticationService,
             @Value("${app.refresh-token.expiration}") Long refreshTokenExpirationInSeconds,
-            @Value("${app.jwt.secret}") Long accessTokenExpirationInSeconds
+            @Value("${app.jwt.expiration}") Long accessTokenExpirationInSeconds
     ) {
         this.authenticationService = authenticationService;
         this.refreshTokenExpirationInSeconds = Duration.ofSeconds(refreshTokenExpirationInSeconds);
