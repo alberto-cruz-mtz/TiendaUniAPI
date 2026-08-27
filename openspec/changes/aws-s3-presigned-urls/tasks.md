@@ -93,61 +93,61 @@ Chain strategy: stacked-to-main
 
 ### PR 1 — Foundation
 
-- [ ] T-CFG-001 — Crear `AwsS3Properties` record (`@ConfigurationProperties(prefix="app.aws.s3")`) con 7 componentes anotados `@NotBlank`. <!-- sdd-owner: implementation -->
+- [x] T-CFG-001 — Crear `AwsS3Properties` record (`@ConfigurationProperties(prefix="app.aws.s3")`) con 7 componentes anotados `@NotBlank`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/configuration/AwsS3Properties.java` (nuevo).
   - **Líneas**: ~25.
   - **ACs**: AC-CFG-1, AC-CFG-5.
   - **Notas**: primer `@ConfigurationProperties` del proyecto; sienta precedente en `configuration/`.
 
-- [ ] T-CFG-002 — Crear `AwsS3Configuration` con `@Configuration`, `@EnableConfigurationProperties(AwsS3Properties.class)` y 2 `@Bean S3Presigner` (`profileS3Presigner`, `publicationS3Presigner`) que aplican `endpointOverride` desde `AwsS3Properties.bucketProfileUrl()` / `bucketPublicationUrl()`. Usar factory method estático privado `buildPresigner(properties, bucketUrl)`. <!-- sdd-owner: implementation -->
+- [x] T-CFG-002 — Crear `AwsS3Configuration` con `@Configuration`, `@EnableConfigurationProperties(AwsS3Properties.class)` y 2 `@Bean S3Presigner` (`profileS3Presigner`, `publicationS3Presigner`) que aplican `endpointOverride` desde `AwsS3Properties.bucketProfileUrl()` / `bucketPublicationUrl()`. Usar factory method estático privado `buildPresigner(properties, bucketUrl)`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/configuration/AwsS3Configuration.java` (nuevo).
   - **Líneas**: ~50.
   - **ACs**: AC-CFG-1, AC-CFG-3, AC-CFG-4.
   - **Notas**: `AwsBasicCredentials.create(accessKeyId, secretAccessKey)` + `StaticCredentialsProvider`. Sin lógica condicional por proveedor (AC-MIG-2, AC-MIG-3).
 
-- [ ] T-CFG-003 — Añadir bloque `app.aws.s3.*` en `application.yaml` (base) referenciando las 7 env vars con default vacío. <!-- sdd-owner: implementation -->
+- [x] T-CFG-003 — Añadir bloque `app.aws.s3.*` en `application.yaml` (base) referenciando las 7 env vars con default vacío. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/resources/application.yaml` (modificado).
   - **Líneas**: ~10 added.
   - **ACs**: AC-CFG-1, AC-CFG-2.
 
-- [ ] T-CFG-004 — Añadir bloque dev en `application-dev.yaml` apuntando a LocalStack (`localhost:4566`). <!-- sdd-owner: implementation -->
+- [x] T-CFG-004 — Añadir bloque dev en `application-dev.yaml` apuntando a LocalStack (`localhost:4566`). <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/resources/application-dev.yaml` (modificado).
   - **Líneas**: ~10 added.
   - **ACs**: AC-CFG-1.
 
-- [ ] T-CFG-005 — Añadir bloque prod en `application-prod.yaml` referenciando env vars sin defaults (fail-fast). <!-- sdd-owner: implementation -->
+- [x] T-CFG-005 — Añadir bloque prod en `application-prod.yaml` referenciando env vars sin defaults (fail-fast). <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/resources/application-prod.yaml` (modificado).
   - **Líneas**: ~10 added.
   - **ACs**: AC-CFG-2 (fail-fast).
 
-- [ ] T-CFG-006 — Crear `AwsS3ConfigurationTest` con `ApplicationContextRunner`. Casos: props completas cargan contexto + ambos beans `S3Presigner` con `endpointOverride` correcto; prop ausente lanza `ConfigurationPropertiesBindException`. Adicionalmente, agregar `@TestPropertySource` a `TiendaUniApiApplicationTests` para mantener el smoke test verde. <!-- sdd-owner: implementation -->
+- [x] T-CFG-006 — Crear `AwsS3ConfigurationTest` con `ApplicationContextRunner`. Casos: props completas cargan contexto + ambos beans `S3Presigner` con `endpointOverride` correcto; prop ausente lanza `ConfigurationPropertiesBindException`. Adicionalmente, agregar `@TestPropertySource` a `TiendaUniApiApplicationTests` para mantener el smoke test verde. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/configuration/AwsS3ConfigurationTest.java` (nuevo); `src/test/java/alberto/cruz/tiendauniapi/TiendaUniApiApplicationTests.java` (modificado).
   - **Líneas**: ~60 added (test nuevo) + ~5 modified.
   - **ACs**: AC-CFG-1, AC-CFG-2, AC-CFG-3.
   - **Notas**: usar `@MockitoBean` para reemplazar `S3Presigner` en el smoke test si fuera necesario (no debería — la app no invoca el presigner en arranque).
 
-- [ ] T-MOD-001 — Crear enum `BucketTarget { PROFILE, PUBLICATION }` con métodos `resolveBucketName(AwsS3Properties)` y `resolveBucketUrl(AwsS3Properties)`. <!-- sdd-owner: implementation -->
+- [x] T-MOD-001 — Crear enum `BucketTarget { PROFILE, PUBLICATION }` con métodos `resolveBucketName(AwsS3Properties)` y `resolveBucketUrl(AwsS3Properties)`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/model/BucketTarget.java` (nuevo).
   - **Líneas**: ~40.
   - **ACs**: indirecto (soporte de AC-CFG-3, AC-PROF-2, AC-POST-4).
 
-- [ ] T-MOD-002 — Crear record `PresignedUrl(String url, String key)` inmutable. <!-- sdd-owner: implementation -->
+- [x] T-MOD-002 — Crear record `PresignedUrl(String url, String key)` inmutable. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/model/PresignedUrl.java` (nuevo).
   - **Líneas**: ~10.
   - **Notas**: tipo de retorno interno del servicio; no se serializa al cliente (DTOs separados).
 
-- [ ] T-MOD-003 — Crear enum `PresignedUrlMimeExtension` con 9 entradas (JPEG, JPG, PNG, GIF, WEBP, SVG_XML, MP4, WEBM, OGG) y `fromMimeType(String): Optional<PresignedUrlMimeExtension>`. <!-- sdd-owner: implementation -->
+- [x] T-MOD-003 — Crear enum `PresignedUrlMimeExtension` con 9 entradas (JPEG, JPG, PNG, GIF, WEBP, SVG_XML, MP4, WEBM, OGG) y `fromMimeType(String): Optional<PresignedUrlMimeExtension>`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/model/PresignedUrlMimeExtension.java` (nuevo).
   - **Líneas**: ~60.
   - **ACs**: AC-VAL-4 (sincronizado con whitelist `@Pattern` del DTO; covered indirectly).
   - **Notas**: exhaustividad en compile-time. La whitelist en el DTO se construye con un test cruzado en el slice de DTOs/Validators.
 
-- [ ] T-MOD-004 — Crear `@Component S3KeyGenerator` con métodos `generateProfileKey(UUID userId, String mimeType)` y `generatePublicationKey(UUID userId, String mimeType)`. Constantes `PROFILE_FOLDER = "profiles"`, `PUBLICATION_FOLDER = "publications"`. <!-- sdd-owner: implementation -->
+- [x] T-MOD-004 — Crear `@Component S3KeyGenerator` con métodos `generateProfileKey(UUID userId, String mimeType)` y `generatePublicationKey(UUID userId, String mimeType)`. Constantes `PROFILE_FOLDER = "profiles"`, `PUBLICATION_FOLDER = "publications"`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/helper/S3KeyGenerator.java` (nuevo).
   - **Líneas**: ~50.
   - **Notas**: lanza `IllegalArgumentException` si `fromMimeType` retorna `Optional.empty()` (servicio lo envuelve en `PresignedUrlGenerationException`).
 
-- [ ] T-MOD-005 — Crear `S3KeyGeneratorTest` con 3 casos: profile key format, publication key format, mimeType inválido lanza `IllegalArgumentException`. <!-- sdd-owner: implementation -->
+- [x] T-MOD-005 — Crear `S3KeyGeneratorTest` con 3 casos: profile key format, publication key format, mimeType inválido lanza `IllegalArgumentException`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/service/helper/S3KeyGeneratorTest.java` (nuevo).
   - **Líneas**: ~40.
   - **Notas**: `@ExtendWith(MockitoExtension.class)` no necesario (helper sin estado, sin collaborators). JUnit 5 puro.
