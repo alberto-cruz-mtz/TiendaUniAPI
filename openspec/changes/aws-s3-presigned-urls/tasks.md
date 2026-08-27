@@ -222,17 +222,17 @@ Chain strategy: stacked-to-main
 
 ### PR 4 — Servicio
 
-- [ ] T-SVC-001 — Crear interfaz `PresignedUrlService` con 2 métodos: `generateProfilePresignedUrl(PresignedUrlProfileRequest, BucketTarget): PresignedUrl` y `generatePublicationPresignedUrls(PresignedUrlPublicationRequest, BucketTarget): List<PresignedUrl>`. <!-- sdd-owner: implementation -->
+- [x] T-SVC-001 — Crear interfaz `PresignedUrlService` con 2 métodos: `generateProfilePresignedUrl(PresignedUrlProfileRequest, BucketTarget): PresignedUrl` y `generatePublicationPresignedUrls(PresignedUrlPublicationRequest, BucketTarget): List<PresignedUrl>`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/interfaces/PresignedUrlService.java` (nuevo).
   - **Líneas**: ~15.
 
-- [ ] T-SVC-002 — Crear `PresignedUrlServiceImpl` con `@Service`, `@RequiredArgsConstructor`, `@Transactional(readOnly=true)`. Inyectar `S3Presigner profileS3Presigner`, `S3Presigner publicationS3Presigner`, `S3KeyGenerator s3KeyGenerator`, `AwsS3Properties awsS3Properties`. Switch por `BucketTarget` para elegir bean. Capturar `SdkException` y envolver en `PresignedUrlGenerationException` (mensaje enmascarado). <!-- sdd-owner: implementation -->
+- [x] T-SVC-002 — Crear `PresignedUrlServiceImpl` con `@Service`, `@RequiredArgsConstructor`, `@Transactional(readOnly=true)`. Inyectar `S3Presigner profileS3Presigner`, `S3Presigner publicationS3Presigner`, `S3KeyGenerator s3KeyGenerator`, `AwsS3Properties awsS3Properties`. Switch por `BucketTarget` para elegir bean. Capturar `SdkException` y envolver en `PresignedUrlGenerationException` (mensaje enmascarado). <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/implementation/PresignedUrlServiceImpl.java` (nuevo).
   - **Líneas**: ~80.
   - **ACs**: AC-PROF-1, AC-PROF-2, AC-POST-1, AC-POST-6, AC-ERR-1.
   - **Notas**: armar `PutObjectRequest` con `bucket`, `key`, `contentType`, `contentLength`. `presignPutObject` retorna `PresignedPutObjectRequest` con `url()`. **NO loggear la URL** (AC-OBS-1).
 
-- [ ] T-SVC-003 — Crear `PresignedUrlServiceImplTest` con `@ExtendWith(MockitoExtension.class)`. Casos: happy path perfil (verifica formato de key + `endpointOverride`), happy path publicación (orden preservado, ids coinciden, keys únicas), fallo del SDK lanza `PresignedUrlGenerationException` con `SdkException` como causa. <!-- sdd-owner: implementation -->
+- [x] T-SVC-003 — Crear `PresignedUrlServiceImplTest` con `@ExtendWith(MockitoExtension.class)`. Casos: happy path perfil (verifica formato de key + `endpointOverride`), happy path publicación (orden preservado, ids coinciden, keys únicas), fallo del SDK lanza `PresignedUrlGenerationException` con `SdkException` como causa. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/service/implementation/PresignedUrlServiceImplTest.java` (nuevo).
   - **Líneas**: ~120.
   - **Notas**: helper estático en el test para construir `PresignedPutObjectRequest` con URL sintética (el constructor es privado del SDK).
