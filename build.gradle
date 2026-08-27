@@ -37,6 +37,7 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 
     implementation 'com.auth0:java-jwt:4.6.0'
+    implementation 'software.amazon.awssdk:s3:2.54.3'
 }
 
 tasks.named('test') {

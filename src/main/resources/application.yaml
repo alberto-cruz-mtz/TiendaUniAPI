@@ -12,3 +12,15 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+
+app:
+  aws:
+    s3:
+      access-key-id: ${AWS_ACCESS_KEY_ID:}
+      secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+      region: ${AWS_REGION:}
+      endpoint: ${AWS_ENDPOINT:}
+      bucket-profile-name: ${AWS_BUCKET_PROFILE_NAME:}
+      bucket-publication-name: ${AWS_BUCKET_PUBLICATION_NAME:}
+      bucket-profile-url: ${AWS_BUCKET_PROFILE_URL:}
+      bucket-publication-url: ${AWS_BUCKET_PUBLICATION_URL:}
