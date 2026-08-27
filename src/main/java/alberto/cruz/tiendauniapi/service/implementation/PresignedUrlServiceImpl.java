@@ -24,11 +24,16 @@ import java.util.UUID;
 /**
  * Generates presigned S3 PUT URLs using bucket-scoped presigner beans.
  *
- * <p>The two {@code S3Presigner} beans ({@code profileS3Presigner} and
- * {@code publicationS3Presigner}) carry their own {@code endpointOverride}, which is
- * why we resolve the presigner locally instead of threading a single bean through a
- * map. This keeps the bucket configuration per bucket and lets the deployment swap
- * providers (AWS → Cloudflare R2) by changing env vars without recompiling.
+ * <p>Both {@code S3Presigner} beans ({@code profileS3Presigner} and
+ * {@code publicationS3Presigner}) share the same provider endpoint override
+ * (the {@code AWS_ENDPOINT} provider URL — AWS S3 or Cloudflare R2). Which
+ * bucket a given call targets is decided by {@code PutObjectRequest.bucket()}
+ * passed to the SDK, not by the endpoint. This keeps the deployment swappable
+ * across providers (AWS S3 → Cloudflare R2) by changing env vars alone,
+ * without recompiling.
+ *
+ * <p>The {@code BucketTarget} parameter selects which bean handles the
+ * request, keeping the bucket-to-presigner mapping local to the service.
  */
 @Service
 @RequiredArgsConstructor

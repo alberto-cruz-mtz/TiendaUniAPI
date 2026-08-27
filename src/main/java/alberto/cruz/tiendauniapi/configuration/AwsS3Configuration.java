@@ -16,25 +16,23 @@ public class AwsS3Configuration {
 
     @Bean
     public S3Presigner profileS3Presigner(AwsS3Properties properties) {
-        return buildPresigner(properties, properties.bucketProfileUrl());
+        return buildPresigner(properties);
     }
 
     @Bean
     public S3Presigner publicationS3Presigner(AwsS3Properties properties) {
-        return buildPresigner(properties, properties.bucketPublicationUrl());
+        return buildPresigner(properties);
     }
 
-    private static S3Presigner buildPresigner(AwsS3Properties properties, String bucketUrl) {
+    private static S3Presigner buildPresigner(AwsS3Properties properties) {
         AwsBasicCredentials credentials = AwsBasicCredentials.create(properties.accessKeyId(), properties.secretAccessKey());
         StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(credentials);
 
+        URI uri = URI.create(properties.endpoint());
         S3Presigner.Builder builder = S3Presigner.builder()
+                .endpointOverride(uri)
                 .region(Region.of(properties.region()))
                 .credentialsProvider(credentialsProvider);
-
-        if (bucketUrl != null && !bucketUrl.isBlank()) {
-            builder.endpointOverride(URI.create(bucketUrl));
-        }
 
         return builder.build();
     }

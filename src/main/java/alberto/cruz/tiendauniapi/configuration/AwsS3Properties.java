@@ -10,6 +10,7 @@ public record AwsS3Properties(
         @NotBlank String accessKeyId,
         @NotBlank String secretAccessKey,
         @NotBlank String region,
+        @NotBlank String endpoint,
         @NotBlank String bucketProfileName,
         @NotBlank String bucketPublicationName,
         @NotBlank String bucketProfileUrl,

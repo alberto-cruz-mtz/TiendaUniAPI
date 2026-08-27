@@ -15,13 +15,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AwsS3ConfigurationTest {
 
-    private static final String PROFILE_BUCKET_URL = "https://s3-profile.localhost.localstack.cloud";
-    private static final String PUBLICATION_BUCKET_URL = "https://s3-publication.localhost.localstack.cloud";
-    private static final String REGION = "us-east-1";
-    private static final String ACCESS_KEY = "test-access-key";
-    private static final String SECRET_KEY = "test-secret-key";
-    private static final String PROFILE_BUCKET_NAME = "bucket-profile";
-    private static final String PUBLICATION_BUCKET_NAME = "bucket-publication";
+        private static final String ENDPOINT = "http://s3.localhost.localstack.cloud:4566";
+        private static final String PROFILE_BUCKET_URL = "http://localhost:4566/bucket-profile-dev";
+        private static final String PUBLICATION_BUCKET_URL = "http://localhost:4566/bucket-publication-dev";
+        private static final String REGION = "us-east-1";
+        private static final String ACCESS_KEY = "test-access-key";
+        private static final String SECRET_KEY = "test-secret-key";
+        private static final String PROFILE_BUCKET_NAME = "bucket-profile";
+        private static final String PUBLICATION_BUCKET_NAME = "bucket-publication";
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withUserConfiguration(AwsS3Configuration.class, TestConfiguration.class)
@@ -29,6 +30,7 @@ class AwsS3ConfigurationTest {
                     "app.aws.s3.access-key-id=" + ACCESS_KEY,
                     "app.aws.s3.secret-access-key=" + SECRET_KEY,
                     "app.aws.s3.region=" + REGION,
+                    "app.aws.s3.endpoint=" + ENDPOINT,
                     "app.aws.s3.bucket-profile-name=" + PROFILE_BUCKET_NAME,
                     "app.aws.s3.bucket-publication-name=" + PUBLICATION_BUCKET_NAME,
                     "app.aws.s3.bucket-profile-url=" + PROFILE_BUCKET_URL,
@@ -55,8 +57,8 @@ class AwsS3ConfigurationTest {
                     .url()
                     .toString();
 
-            assertThat(java.net.URI.create(profileUrl).getHost()).contains(java.net.URI.create(PROFILE_BUCKET_URL).getHost());
-            assertThat(java.net.URI.create(publicationUrl).getHost()).contains(java.net.URI.create(PUBLICATION_BUCKET_URL).getHost());
+            assertThat(java.net.URI.create(profileUrl).getHost()).contains(java.net.URI.create(ENDPOINT).getHost());
+            assertThat(java.net.URI.create(publicationUrl).getHost()).contains(java.net.URI.create(ENDPOINT).getHost());
         });
     }
 
@@ -68,6 +70,7 @@ class AwsS3ConfigurationTest {
                         "app.aws.s3.access-key-id=" + ACCESS_KEY,
                         "app.aws.s3.secret-access-key=" + SECRET_KEY,
                         "app.aws.s3.region=" + REGION,
+                        "app.aws.s3.endpoint=" + ENDPOINT,
                         "app.aws.s3.bucket-profile-name=" + PROFILE_BUCKET_NAME,
                         "app.aws.s3.bucket-publication-name=" + PUBLICATION_BUCKET_NAME,
                         "app.aws.s3.bucket-profile-url=",
