@@ -1,0 +1,184 @@
+package alberto.cruz.tiendauniapi.service.implementation;
+
+import alberto.cruz.tiendauniapi.common.UnknownException;
+import alberto.cruz.tiendauniapi.persistence.entity.UniversityEntity;
+import alberto.cruz.tiendauniapi.persistence.entity.UserEntity;
+import alberto.cruz.tiendauniapi.persistence.model.AuthenticatedUser;
+import alberto.cruz.tiendauniapi.persistence.projection.UserProjection;
+import alberto.cruz.tiendauniapi.persistence.repository.UniversityRepository;
+import alberto.cruz.tiendauniapi.persistence.repository.UserRepository;
+import alberto.cruz.tiendauniapi.presentation.dto.AuthenticationResponse;
+import alberto.cruz.tiendauniapi.presentation.dto.RegisterRequest;
+import alberto.cruz.tiendauniapi.presentation.dto.RegisterResponse;
+import alberto.cruz.tiendauniapi.presentation.dto.TokenBundle;
+import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegisteredException;
+import alberto.cruz.tiendauniapi.service.exception.EmailDomainNotAllowedException;
+import alberto.cruz.tiendauniapi.service.exception.EmailAddressNotFound;
+import alberto.cruz.tiendauniapi.service.exception.UserNotFoundException;
+import alberto.cruz.tiendauniapi.service.interfaces.AuthenticationService;
+import alberto.cruz.tiendauniapi.service.interfaces.RefreshTokenService;
+import alberto.cruz.tiendauniapi.utils.JwtUtil;
+import alberto.cruz.tiendauniapi.utils.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class AuthenticationServiceImpl implements AuthenticationService {
+
+    private final UserRepository userRepository;
+    private final UniversityRepository universityRepository;
+
+    private final RefreshTokenService refreshTokenService;
+    private final JwtUtil jwtUtil;
+
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+
+    @Override
+    @Transactional
+    public RegisterResponse register(RegisterRequest request) {
+        this.ensureThatEmailAddressIsNotRegistered(request.email());
+
+        UniversityEntity university = this.findUniversityByEmail(request.email());
+        String encodedPassword = passwordEncoder.encode(request.password());
+        UserEntity user = this.createUser(request, university, encodedPassword);
+
+        UserEntity savedUser = userRepository.save(user);
+
+        AuthenticatedUser authenticatedUser = UserMapper.toAuthenticatedUser(savedUser);
+        TokenBundle tokens = this.generateAccessAndRefreshToken(authenticatedUser, savedUser.getId());
+
+        return this.createRegisterResponse(savedUser, tokens);
+    }
+
+    @Override
+    @Transactional
+    public AuthenticationResponse authenticate(String email, String password) {
+        Authentication authentication = this.authenticateUserByCredentials(email, password);
+
+        UserEntity user = this.findUserByEmail(email);
+        TokenBundle tokens = this.generateAccessAndRefreshToken(authentication, user.getId());
+
+        return this.createAuthenticationResponse(user, tokens);
+    }
+
+    @Override
+    @Transactional
+    public TokenBundle refreshTokenAndGenerateAccessToken(UUID refreshToken, UUID userId) {
+        UserProjection user = userRepository.findUserEntitiesById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        String newRefreshToken = refreshTokenService.refreshToken(refreshToken, userId);
+        AuthenticatedUser authenticatedUser = UserMapper.toAuthenticatedUser(user);
+
+        String accessToken = jwtUtil.generateToken(authenticatedUser);
+        return new TokenBundle(accessToken, newRefreshToken);
+    }
+
+    @Override
+    @Transactional
+    public void logout(UUID refreshToken, UUID userId) {
+        refreshTokenService.revokeToken(refreshToken, userId);
+    }
+
+    @Override
+    @Transactional
+    public void updateAvatarKey(UUID userId, String key) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+        user.setAvatarUrl(key);
+        userRepository.save(user);
+    }
+
+    private String extractEmailDomain(String email) {
+        int atIndex = email.indexOf('@');
+        if (atIndex < 0 || atIndex == email.length() - 1) {
+            throw new UnknownException("El correo electrónico proporcionado no es válido. Asegúrese de que contenga un dominio después del símbolo '@'.");
+        }
+        return email.substring(atIndex + 1).toLowerCase();
+    }
+
+    private void ensureThatEmailAddressIsNotRegistered(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new EmailAddressAlreadyRegisteredException();
+        }
+    }
+
+    private UniversityEntity findUniversityByEmail(String email) {
+        String domain = extractEmailDomain(email);
+        return universityRepository.findByEmailDomainsContains(domain)
+                .orElseThrow(EmailDomainNotAllowedException::new);
+    }
+
+    private UserEntity createUser(RegisterRequest request, UniversityEntity university, String encodedPassword) {
+        return UserEntity.builder()
+                .email(request.email())
+                .password(encodedPassword)
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .university(university)
+                .verified(false)
+                .build();
+    }
+
+    private RegisterResponse createRegisterResponse(UserEntity user, TokenBundle tokenBundle) {
+        return new RegisterResponse(
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                null,
+                user.isVerified(),
+                tokenBundle
+        );
+    }
+
+    private TokenBundle generateAccessAndRefreshToken(AuthenticatedUser authentication, UUID id) {
+        String accessToken = jwtUtil.generateToken(authentication);
+        String refreshToken = refreshTokenService.generateToken(id);
+
+        return new TokenBundle(accessToken, refreshToken);
+    }
+
+    private TokenBundle generateAccessAndRefreshToken(Authentication authentication, UUID id) {
+        if (authentication.getPrincipal() instanceof AuthenticatedUser authenticatedUser) {
+            return generateAccessAndRefreshToken(authenticatedUser, id);
+        } else {
+            throw new UnknownException("El principal de autenticación no es del tipo esperado.");
+        }
+    }
+
+    private Authentication authenticateUserByCredentials(String email, String password) {
+        var credentials = new UsernamePasswordAuthenticationToken(email, password);
+
+        // internamente, carga el UserDetails,
+        // compara la contraseña en texto plano contra el hash de la BD
+        // y lanza BadCredentialsException si no coincide.
+        return authenticationManager.authenticate(credentials);
+    }
+
+    private UserEntity findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new EmailAddressNotFound(email));
+    }
+
+    private AuthenticationResponse createAuthenticationResponse(UserEntity user, TokenBundle tokens) {
+        return new AuthenticationResponse(
+                user.getId(),
+                null,
+                user.getFirstName(),
+                user.getLastName(),
+                user.isVerified(),
+                tokens
+        );
+    }
+}

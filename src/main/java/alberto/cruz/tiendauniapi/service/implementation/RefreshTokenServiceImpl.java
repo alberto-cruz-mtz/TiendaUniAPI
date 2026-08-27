@@ -1,0 +1,98 @@
+package alberto.cruz.tiendauniapi.service.implementation;
+
+import alberto.cruz.tiendauniapi.persistence.entity.RefreshTokenEntity;
+import alberto.cruz.tiendauniapi.persistence.repository.RefreshTokenRepository;
+import alberto.cruz.tiendauniapi.service.exception.ExpiredRefreshTokenException;
+import alberto.cruz.tiendauniapi.service.exception.RefreshTokenNotFoundException;
+import alberto.cruz.tiendauniapi.service.exception.RevokedRefreshTokenException;
+import alberto.cruz.tiendauniapi.service.interfaces.RefreshTokenService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Service
+public class RefreshTokenServiceImpl implements RefreshTokenService {
+
+    private final RefreshTokenRepository repository;
+    private final Long refreshTokenExpirationInSeconds;
+
+    public RefreshTokenServiceImpl(
+            RefreshTokenRepository repository,
+            @Value("${app.refresh-token.expiration}") Long refreshTokenExpirationInSeconds
+    ) {
+        this.repository = repository;
+        this.refreshTokenExpirationInSeconds = refreshTokenExpirationInSeconds;
+    }
+
+    @Override
+    @Transactional
+    public String generateToken(UUID userId) {
+        RefreshTokenEntity refreshTokenEntity = this.createRefreshToken(userId);
+        RefreshTokenEntity savedRefreshToken = repository.save(refreshTokenEntity);
+        return savedRefreshToken.getToken().toString();
+    }
+
+    @Override
+    @Transactional
+    public String refreshToken(UUID refreshToken, UUID userId) {
+        RefreshTokenEntity refreshTokenEntity = this.findRefreshTokenByCurrentTokenAndUserId(refreshToken, userId);
+
+        this.ensureThatRefreshTokenIsNotExpired(refreshTokenEntity);
+        this.revokeAllActiveTokensByUserId(refreshTokenEntity.isRevoked(), userId);
+
+        RefreshTokenEntity updatedRefreshToken = this.changeCurrentRefreshTokenForNewOne(refreshTokenEntity);
+
+        return updatedRefreshToken.getToken().toString();
+    }
+
+    @Override
+    @Transactional
+    public void revokeToken(UUID refreshToken, UUID userId) {
+        RefreshTokenEntity refreshTokenEntity = this.findRefreshTokenByCurrentTokenAndUserId(refreshToken, userId);
+        refreshTokenEntity.setRevoked(true);
+        repository.save(refreshTokenEntity);
+    }
+
+    private RefreshTokenEntity findRefreshTokenByCurrentTokenAndUserId(UUID refreshToken, UUID userId) {
+        return repository.findByTokenAndUserId(refreshToken, userId)
+                .orElseThrow(RefreshTokenNotFoundException::new);
+    }
+
+    private RefreshTokenEntity changeCurrentRefreshTokenForNewOne(RefreshTokenEntity refreshToken) {
+        refreshToken.setToken(UUID.randomUUID());
+        refreshToken.setExpiredAt(this.calculateExpirationTime());
+        return repository.save(refreshToken);
+    }
+
+    private void ensureThatRefreshTokenIsNotExpired(RefreshTokenEntity refreshToken) {
+        if (refreshToken.getExpiredAt().isBefore(Instant.now())) {
+            refreshToken.setRevoked(true);
+            repository.save(refreshToken);
+
+            throw new ExpiredRefreshTokenException();
+        }
+    }
+
+    private void revokeAllActiveTokensByUserId(boolean isRevoked, UUID userId) {
+        if (isRevoked) {
+            repository.markedLikeRevokedAllTokensByUserId(userId);
+            throw new RevokedRefreshTokenException();
+        }
+    }
+
+    private Instant calculateExpirationTime() {
+        return Instant.now().plusSeconds(this.refreshTokenExpirationInSeconds);
+    }
+
+    private RefreshTokenEntity createRefreshToken(UUID userId) {
+        return RefreshTokenEntity.builder()
+                .token(UUID.randomUUID())
+                .userId(userId)
+                .expiredAt(this.calculateExpirationTime())
+                .build();
+    }
+
+}

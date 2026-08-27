@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    username: root
+    password: 1234
+    url: jdbc:postgresql://localhost:5432/tiendauni
+  jpa:
+    show-sql: true
+
+app:
+  cors:
+    allowed-origins: "http://localhost:3000, http://localhost:5173, http://localhost:8080"
+  jwt:
+    secret: mysecretkey
+    expiration: 900 # 15 minutes in seconds
+    issuer: TiendaUniAPI
+  refresh-token:
+    expiration: 604800 # 7 day in seconds
