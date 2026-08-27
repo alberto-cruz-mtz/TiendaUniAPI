@@ -17,4 +17,6 @@ public interface AuthenticationService {
     TokenBundle refreshTokenAndGenerateAccessToken(UUID refreshToken, UUID userId);
 
     void logout(UUID refreshToken, UUID userId);
+
+    void updateAvatarKey(UUID userId, String key);
 }

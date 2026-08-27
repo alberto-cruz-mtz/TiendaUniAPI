@@ -91,6 +91,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshTokenService.revokeToken(refreshToken, userId);
     }
 
+    @Override
+    @Transactional
+    public void updateAvatarKey(UUID userId, String key) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+        user.setAvatarUrl(key);
+        userRepository.save(user);
+    }
+
     private String extractEmailDomain(String email) {
         int atIndex = email.indexOf('@');
         if (atIndex < 0 || atIndex == email.length() - 1) {
