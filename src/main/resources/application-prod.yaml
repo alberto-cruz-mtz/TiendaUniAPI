@@ -9,6 +9,15 @@ spring:
 app:
   cors:
     allowed-origins: ${ALLOWED_ORIGINS}
+  aws:
+    s3:
+      access-key-id: ${AWS_ACCESS_KEY_ID}
+      secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+      region: ${AWS_REGION}
+      bucket-profile-name: ${AWS_BUCKET_PROFILE_NAME}
+      bucket-publication-name: ${AWS_BUCKET_PUBLICATION_NAME}
+      bucket-profile-url: ${AWS_BUCKET_PROFILE_URL}
+      bucket-publication-url: ${AWS_BUCKET_PUBLICATION_URL}
   jwt:
     secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION}
