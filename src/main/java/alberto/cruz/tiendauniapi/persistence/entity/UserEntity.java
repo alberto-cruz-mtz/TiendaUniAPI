@@ -44,6 +44,9 @@ public class UserEntity extends AuditableEntity {
     @Column(name = "last_name", nullable = false, length = 60)
     private String lastName;
 
+    @Column(name = "avatar_url", nullable = false, length = 300)
+    private String avatarUrl;
+
     @Builder.Default
     @Column(name = "verified", nullable = false)
     private boolean verified = false;

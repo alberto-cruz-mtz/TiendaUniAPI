@@ -127,6 +127,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
+                null,
                 user.isVerified(),
                 tokenBundle
         );

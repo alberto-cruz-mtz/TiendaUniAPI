@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS "users"
     "password"      VARCHAR(200)     NOT NULL,
     "first_name"    VARCHAR(60)      NOT NULL,
     "last_name"     VARCHAR(60)      NOT NULL,
+        "avatar_url"    VARCHAR(300)     NOT NULL,
     "verified"      BOOLEAN          NOT NULL DEFAULT FALSE,
     "created_at"    TIMESTAMPTZ      NOT NULL DEFAULT now(),
     "updated_at"    TIMESTAMPTZ      NOT NULL DEFAULT now(),
