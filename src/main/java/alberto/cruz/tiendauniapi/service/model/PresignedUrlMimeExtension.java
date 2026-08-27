@@ -14,6 +14,16 @@ public enum PresignedUrlMimeExtension {
     WEBM("video/webm", "webm"),
     OGG("video/ogg", "ogg");
 
+    /**
+     * Compile-time-constant regex used by DTOs in {@code @Pattern}.
+     *
+     * <p>Must remain in lock-step with the enum values: the
+     * {@code PresignedUrlMimeExtensionTest} asserts that every enum mimeType
+     * matches this regex, so any drift fails the test before reaching runtime.
+     */
+    public static final String WHITELIST_REGEX =
+            "image/jpeg|image/jpg|image/png|image/gif|image/webp|image/svg\\+xml|video/mp4|video/webm|video/ogg";
+
     private final String mimeType;
     private final String extension;
 
