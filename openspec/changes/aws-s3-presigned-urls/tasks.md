@@ -273,33 +273,33 @@ Chain strategy: stacked-to-main
 
 ### PR 6 — Endpoint de publicación + exception handlers
 
-- [ ] T-CTL-003 — Crear `PublicationPresignedUrlController` (`@RestController @RequestMapping("/posts/presigned-url") @RequiredArgsConstructor`). Endpoint `POST` que recibe `@Valid @RequestBody PresignedUrlPublicationRequest` y delega en `presignedUrlService.generatePublicationPresignedUrls(request, BucketTarget.PUBLICATION)`. Mapea `List<PresignedUrl>` a `List<PresignedUrlItemResponse>` preservando orden. Devuelve `200 OK` con `PresignedUrlPublicationResponse`. <!-- sdd-owner: implementation -->
+- [x] T-CTL-003 — Crear `PublicationPresignedUrlController` (`@RestController @RequestMapping("/posts/presigned-url") @RequiredArgsConstructor`). Endpoint `POST` que recibe `@Valid @RequestBody PresignedUrlPublicationRequest` y delega en `presignedUrlService.generatePublicationPresignedUrls(request, BucketTarget.PUBLICATION)`. Mapea `List<PresignedUrl>` a `List<PresignedUrlItemResponse>` preservando orden. Devuelve `200 OK` con `PresignedUrlPublicationResponse`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/presentation/controller/PublicationPresignedUrlController.java` (nuevo).
   - **Líneas**: ~40.
   - **ACs**: AC-POST-1, AC-POST-3, AC-POST-4, AC-POST-5.
 
-- [ ] T-CTL-004b — Crear `PublicationPresignedUrlControllerWebMvcTest` con 5 casos: 3 elementos con ids mixtos preserva orden, ids duplicados → 400, array vacío → 400, 11 archivos → 400, sin cookie → 401. <!-- sdd-owner: implementation -->
+- [x] T-CTL-004b — Crear `PublicationPresignedUrlControllerWebMvcTest` con 5 casos: 3 elementos con ids mixtos preserva orden, ids duplicados → 400, array vacío → 400, 11 archivos → 400, sin cookie → 401. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/presentation/controller/PublicationPresignedUrlControllerWebMvcTest.java` (nuevo).
   - **Líneas**: ~90.
   - **ACs**: AC-POST-2, AC-POST-3, AC-POST-5.
 
-- [ ] T-ADV-001 — Crear `PresignedUrlGenerationException extends RuntimeException` con constructor `(String message, Throwable cause)`. <!-- sdd-owner: implementation -->
+- [x] T-ADV-001 — Crear `PresignedUrlGenerationException extends RuntimeException` con constructor `(String message, Throwable cause)`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/service/exception/PresignedUrlGenerationException.java` (nuevo).
   - **Líneas**: ~15.
   - **ACs**: AC-ERR-1.
 
-- [ ] T-ADV-002 — Crear `PresignedUrlExceptionHandler` (`@RestControllerAdvice @Order(20)`) con handler de `PresignedUrlGenerationException` que devuelve `503 Service Unavailable` + `ProblemDetail` (`type = /problems/presigned-url-generation-failed`, `title = "Presigned Url Generation Failed"`, `detail = "No se pudo generar la URL pre-firmada..."`). Loggear `ERROR` con stacktrace (sin URL). <!-- sdd-owner: implementation -->
+- [x] T-ADV-002 — Crear `PresignedUrlExceptionHandler` (`@RestControllerAdvice @Order(20)`) con handler de `PresignedUrlGenerationException` que devuelve `503 Service Unavailable` + `ProblemDetail` (`type = /problems/presigned-url-generation-failed`, `title = "Presigned Url Generation Failed"`, `detail = "No se pudo generar la URL pre-firmada..."`). Loggear `ERROR` con stacktrace (sin URL). <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/presentation/advice/PresignedUrlExceptionHandler.java` (nuevo).
   - **Líneas**: ~50.
   - **ACs**: AC-ERR-1.
 
-- [ ] T-ADV-003 — Extender `GlobalExceptionHandler` con `@ExceptionHandler(jakarta.validation.ConstraintViolationException.class)` que devuelve `400` + `ProblemDetail` (`type = /problems/validations`, `title = "Validation Failed"`, `detail` con mensaje de la constraint violation). <!-- sdd-owner: implementation -->
+- [x] T-ADV-003 — Extender `GlobalExceptionHandler` con `@ExceptionHandler(jakarta.validation.ConstraintViolationException.class)` que devuelve `400` + `ProblemDetail` (`type = /problems/validations`, `title = "Validation Failed"`, `detail` con mensaje de la constraint violation). <!-- sdd-owner: implementation -->
   - **Archivos**: `src/main/java/alberto/cruz/tiendauniapi/presentation/advice/GlobalExceptionHandler.java` (modificado).
   - **Líneas**: ~40 added.
   - **ACs**: AC-ERR-3.
   - **Notas**: `@UniqueFileIds` lanza `ConstraintViolationException`, no `MethodArgumentNotValidException`; este handler es el que la captura.
 
-- [ ] T-ADV-004 — Crear `PresignedUrlExceptionHandlerTest`. Caso: invocación directa del handler con `PresignedUrlGenerationException` → verifica `status = 503`, `type`, `title`, `detail`. <!-- sdd-owner: implementation -->
+- [x] T-ADV-004 — Crear `PresignedUrlExceptionHandlerTest`. Caso: invocación directa del handler con `PresignedUrlGenerationException` → verifica `status = 503`, `type`, `title`, `detail`. <!-- sdd-owner: implementation -->
   - **Archivos**: `src/test/java/alberto/cruz/tiendauniapi/presentation/advice/PresignedUrlExceptionHandlerTest.java` (nuevo).
   - **Líneas**: ~50.
 
