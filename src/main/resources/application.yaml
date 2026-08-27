@@ -1,7 +1,6 @@
 spring:
   profiles:
-    active: dev
-    default: ${PROFILE:dev}
+    active: ${PROFILE:dev}
   mvc:
     problemdetails:
       enabled: true
