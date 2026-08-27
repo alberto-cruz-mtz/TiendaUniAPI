@@ -2,6 +2,7 @@ package alberto.cruz.tiendauniapi.presentation.advice;
 
 import alberto.cruz.tiendauniapi.common.UnknownException;
 import alberto.cruz.tiendauniapi.presentation.dto.IncorrectField;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.NestedRuntimeException;
 import org.springframework.core.Ordered;
@@ -27,6 +28,8 @@ public class GlobalExceptionHandler {
 
     public static final String DOMAIN_URI = "https://tiendauniapi.com/problems";
 
+    private static final String GENERIC_VALIDATION_DETAIL = "Uno o más campos no cumplen con las reglas de validación.";
+
     @ExceptionHandler(UnknownException.class)
     public ResponseEntity<ProblemDetail> handleUnknownException(UnknownException exception) {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -47,12 +50,33 @@ public class GlobalExceptionHandler {
                 .map(fieldError -> new IncorrectField(fieldError.getField(), fieldError.getDefaultMessage()))
                 .collect(Collectors.toMap(IncorrectField::field, Function.identity(), (existing, replacement) -> existing));
 
-        String message = "Uno o más campos no cumplen con las reglas de validación.";
+        String globalErrorMessage = ex.getBindingResult().getGlobalErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage() == null ? GENERIC_VALIDATION_DETAIL : error.getDefaultMessage())
+                .orElse(null);
+
+        String message = fieldErrors.isEmpty() && globalErrorMessage != null ? globalErrorMessage : GENERIC_VALIDATION_DETAIL;
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, message);
         problemDetail.setType(URI.create(DOMAIN_URI + "/validations"));
         problemDetail.setTitle("Validation Failed");
         problemDetail.setProperty("errors", fieldErrors);
+
+        return ResponseEntity.status(status).body(problemDetail);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolationException(ConstraintViolationException ex) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+
+        String message = ex.getConstraintViolations().stream()
+                .findFirst()
+                .map(violation -> violation.getMessage() == null ? GENERIC_VALIDATION_DETAIL : violation.getMessage())
+                .orElse(GENERIC_VALIDATION_DETAIL);
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, message);
+        problemDetail.setType(URI.create(DOMAIN_URI + "/validations"));
+        problemDetail.setTitle("Validation Failed");
 
         return ResponseEntity.status(status).body(problemDetail);
     }
