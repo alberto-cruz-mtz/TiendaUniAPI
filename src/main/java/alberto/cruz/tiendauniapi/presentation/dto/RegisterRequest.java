@@ -21,16 +21,16 @@ public record RegisterRequest(
         @NotBlank(message = "El nombre no puede estar vacío")
         @Size(min = 2, max = 60, message = "El nombre debe tener entre 2 y 60 caracteres")
         @Pattern(
-                regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]+$",
-                message = "El nombre no puede contener números ni caracteres especiales"
+                regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]+(?: [a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]+)*$",
+                message = "El nombre solo puede contener letras y un espacio entre palabras"
         )
         String firstName,
 
         @NotBlank(message = "El apellido no puede estar vacío")
         @Size(min = 2, max = 60, message = "El apellido debe tener entre 2 y 60 caracteres")
         @Pattern(
-                regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]+$",
-                message = "El apellido no puede contener números ni caracteres especiales"
+                regexp = "^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]+(?: [a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]+)*$",
+                message = "El apellido solo puede contener letras y un espacio entre palabras"
         )
         String lastName
 ) {
