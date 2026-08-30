@@ -21,6 +21,7 @@ import alberto.cruz.tiendauniapi.presentation.dto.PostRequestParams;
 import alberto.cruz.tiendauniapi.presentation.dto.PostSummaryResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.ProductItem;
 import alberto.cruz.tiendauniapi.service.exception.InvalidArgumentException;
+import alberto.cruz.tiendauniapi.service.exception.PostAlreadyPublishedException;
 import alberto.cruz.tiendauniapi.service.exception.PostNotFoundException;
 import alberto.cruz.tiendauniapi.service.helper.CursorUtils;
 import alberto.cruz.tiendauniapi.service.interfaces.PostService;
@@ -67,10 +68,7 @@ public class PostServiceImpl implements PostService {
         PublicationEntity publication = this.findOwnedPublication(id.value(), userId);
 
         boolean isAlreadyPublished = publication.getStatus() == PublicationStatus.PUBLISHED;
-
-        if (isAlreadyPublished) {
-            throw new RuntimeException("El post ya esta publicado en este momento");
-        }
+        if (isAlreadyPublished) throw new PostAlreadyPublishedException();
 
         publication.setPostedAt(Instant.now());
         publication.setExpiredAt(expirationDate);
