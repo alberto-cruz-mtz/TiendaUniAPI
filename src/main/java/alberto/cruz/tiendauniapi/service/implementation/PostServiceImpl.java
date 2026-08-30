@@ -95,7 +95,7 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public PostDetailResponse getPostById(PostId id, UUID universityId) {
-        PublicationEntity publication = this.findPublicationById(id.value());
+        PublicationEntity publication = this.findPublicationById(id.value(), universityId);
 
         List<ProductItem> products = ProductMapper.toProductItem(publication.getProducts());
         List<MediaContentRequest> mediaContent = PublicationMapper.toMediaContent(publication.getMedia());
@@ -178,8 +178,8 @@ public class PostServiceImpl implements PostService {
         return encodedCursor;
     }
 
-    private PublicationEntity findPublicationById(UUID id) {
-        return publicationRepository.findById(id)
+    private PublicationEntity findPublicationById(UUID id, UUID universityId) {
+        return publicationRepository.findByIdAndUniversityId(id, universityId)
                 .orElseThrow(PostNotFoundException::new);
     }
 
