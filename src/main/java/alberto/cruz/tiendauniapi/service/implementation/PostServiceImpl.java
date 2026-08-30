@@ -29,7 +29,6 @@ import alberto.cruz.tiendauniapi.service.model.PostId;
 import alberto.cruz.tiendauniapi.utils.mapper.ProductMapper;
 import alberto.cruz.tiendauniapi.utils.mapper.PublicationMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -40,7 +39,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
@@ -69,11 +67,15 @@ public class PostServiceImpl implements PostService {
         PublicationEntity publication = this.findOwnedPublication(id.value(), userId);
 
         boolean isAlreadyPublished = publication.getStatus() == PublicationStatus.PUBLISHED;
+
         if (isAlreadyPublished) {
-            publication.setPostedAt(Instant.now());
-            publication.setExpiredAt(expirationDate);
-            publicationRepository.save(publication);
+            throw new RuntimeException("El post ya esta publicado en este momento");
         }
+
+        publication.setPostedAt(Instant.now());
+        publication.setExpiredAt(expirationDate);
+        publication.setStatus(PublicationStatus.PUBLISHED);
+        publicationRepository.save(publication);
     }
 
     @Override
