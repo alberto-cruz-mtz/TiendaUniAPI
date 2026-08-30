@@ -1,6 +1,5 @@
 package alberto.cruz.tiendauniapi.service.implementation;
 
-import alberto.cruz.tiendauniapi.common.ResourceNotFoundException;
 import alberto.cruz.tiendauniapi.persistence.entity.ProductEntity;
 import alberto.cruz.tiendauniapi.persistence.entity.PublicationEntity;
 import alberto.cruz.tiendauniapi.persistence.entity.PublicationMediaEntity;
@@ -21,10 +20,14 @@ import alberto.cruz.tiendauniapi.presentation.dto.PostRequest;
 import alberto.cruz.tiendauniapi.presentation.dto.PostRequestParams;
 import alberto.cruz.tiendauniapi.presentation.dto.PostSummaryResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.ProductItem;
+import alberto.cruz.tiendauniapi.service.exception.InvalidArgumentException;
+import alberto.cruz.tiendauniapi.service.exception.PostNotFoundException;
 import alberto.cruz.tiendauniapi.service.helper.CursorUtils;
 import alberto.cruz.tiendauniapi.service.interfaces.PostService;
 import alberto.cruz.tiendauniapi.service.model.Cursor;
 import alberto.cruz.tiendauniapi.service.model.PostId;
+import alberto.cruz.tiendauniapi.utils.mapper.ProductMapper;
+import alberto.cruz.tiendauniapi.utils.mapper.PublicationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,7 +37,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,52 +54,10 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public UUID createPost(PostRequest request, UUID userId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + userId));
+        PublicationEntity publication = this.buildPublication(request, userId);
+        PublicationEntity savedPublication = publicationRepository.save(publication);
 
-        List<UUID> productIds;
-
-        try {
-            productIds = request.products().stream().map(UUID::fromString).toList();
-        } catch (Exception exception) {
-            throw new IllegalArgumentException("Uno o más datos del campo products no es un ID valido");
-        }
-
-        List<ProductEntity> products = productRepository.findAllByIdIn(productIds);
-
-        var tagNames = request.tags().stream().map(TagName::valueOf).toList();
-        List<TagEntity> tags = tagRepository.findAllByNameIn(tagNames);
-
-        var publishRightNow = request.publishRightNow() != null && request.publishRightNow();
-        var status = publishRightNow ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT;
-
-        Instant expirationDate = request.expirationDate();
-        Instant postedAt = publishRightNow ? Instant.now() : null;
-
-        PublicationEntity publication = PublicationEntity.builder()
-                .title(request.title())
-                .description(request.description())
-                .expiredAt(expirationDate)
-                .postedAt(postedAt)
-                .status(status)
-                .user(user)
-                .products(new HashSet<>(products))
-                .tags(new HashSet<>(tags))
-                .build();
-
-        var savedPublication = publicationRepository.save(publication);
-
-        var publicationMediaEntities = request.mediaContent().stream()
-                .map(media -> {
-                    return PublicationMediaEntity.builder()
-                            .mediaType(media.mediaType())
-                            .mediaUrl(media.mediaKey())
-                            .displayOrder(media.orderNumber())
-                            .publication(savedPublication)
-                            .build();
-                })
-                .toList();
-
+        List<PublicationMediaEntity> publicationMediaEntities = this.createPublicationMediaList(publication, request.mediaContent());
         publicationMediaRepository.saveAll(publicationMediaEntities);
 
         return savedPublication.getId();
@@ -106,10 +66,10 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void publishPost(PostId id, UUID userId, Instant expirationDate) {
-        PublicationEntity publication = publicationRepository.findByIdAndUserId(id.value(), userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Publicación no encontrada con ID: " + id.value()));
+        PublicationEntity publication = this.findOwnedPublication(id.value(), userId);
 
-        if (publication.getPostedAt() == null) {
+        boolean isAlreadyPublished = publication.getStatus() == PublicationStatus.PUBLISHED;
+        if (isAlreadyPublished) {
             publication.setPostedAt(Instant.now());
             publication.setExpiredAt(expirationDate);
             publicationRepository.save(publication);
@@ -119,111 +79,26 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public DataPaginationResponse<PostSummaryResponse> getPostsWithPagination(PostRequestParams requestParams, UUID universityId) {
-        Cursor cursor = CursorUtils.decodeCursor(requestParams.cursor());
-
-        Specification<PublicationEntity> specification = Specification
-                .where(PublicationSpecification.withUniversityId(universityId))
-                .and(PublicationSpecification.withoutPublished())
-                .and(PublicationSpecification.withSearch(requestParams.search()))
-                .and(PublicationSpecification.withOutOfStock(requestParams.isOutOfStock()))
-                .and(PublicationSpecification.withCursor(cursor.postId(), cursor.postedAt()));
-
-        Page<PublicationEntity> publications = publicationRepository.findAll(specification, requestParams.pageable());
-        List<PostSummaryResponse> posts = publications.getContent().stream()
-                .map(publication -> {
-                    List<MediaContentRequest> mediaContent = publication.getMedia().stream()
-                            .map(media -> new MediaContentRequest(media.getMediaType(), media.getMediaUrl(), media.getDisplayOrder()))
-                            .toList();
-
-                    return new PostSummaryResponse(
-                            publication.getId(),
-                            publication.getTitle(),
-                            publication.getDescription(),
-                            mediaContent,
-                            publication.getPostedAt(),
-                            publication.getStatus().name()
-                    );
-                })
-                .toList();
-
-        boolean hasNext = publications.getTotalElements() > requestParams.pageable().getPageSize();
-
-        String encodeCursor = null;
-
-        if (hasNext) {
-            PostSummaryResponse lastPost = posts.getLast();
-            encodeCursor = CursorUtils.encodeCursor(lastPost.id(), lastPost.postedAt());
-        }
-
-        return new DataPaginationResponse<>(posts, encodeCursor, hasNext);
+        Page<PublicationEntity> publications = this.searchPublications(requestParams, universityId);
+        return this.toDataPaginationResponse(publications, requestParams.pageable());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DataPaginationResponse<PostSummaryResponse> getPostsByUser(UUID userId, String cursor, Pageable pageable) {
-        Cursor decodeCursor = CursorUtils.decodeCursor(cursor);
-
-        Specification<PublicationEntity> specification = Specification
-                .where(PublicationSpecification.withUserId(userId))
-                .and(PublicationSpecification.withCursor(decodeCursor.postId(), decodeCursor.postedAt()));
-
-        Page<PublicationEntity> publications = publicationRepository.findAll(specification, pageable);
-
-        List<PostSummaryResponse> posts = publications.getContent().stream()
-                .map(publication -> {
-                    List<MediaContentRequest> mediaContent = publication.getMedia().stream()
-                            .map(media -> new MediaContentRequest(media.getMediaType(), media.getMediaUrl(), media.getDisplayOrder()))
-                            .toList();
-
-                    return new PostSummaryResponse(
-                            publication.getId(),
-                            publication.getTitle(),
-                            publication.getDescription(),
-                            mediaContent,
-                            publication.getPostedAt(),
-                            publication.getStatus().name()
-                    );
-                })
-                .toList();
-
-        boolean hasNext = publications.getTotalElements() > pageable.getPageSize();
-        log.info("Number of elements: {}, Page size: {}, Has next: {}", publications.getTotalElements(), pageable.getPageSize(), hasNext);
-
-        String encodeCursor = null;
-
-        if (hasNext) {
-            PostSummaryResponse lastPost = posts.getLast();
-            encodeCursor = CursorUtils.encodeCursor(lastPost.id(), lastPost.postedAt());
-        }
-
-        return new DataPaginationResponse<>(posts, encodeCursor, hasNext);
+        Page<PublicationEntity> publications = this.findPublicationsByUser(userId, cursor, pageable);
+        return this.toDataPaginationResponse(publications, pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PostDetailResponse getPostById(PostId id, UUID universityId) {
-        PublicationEntity publication = publicationRepository.findById(id.value())
-                .orElseThrow(() -> new ResourceNotFoundException("Publicación no encontrada con ID: " + id.value()));
+        PublicationEntity publication = this.findPublicationById(id.value());
 
-        List<ProductItem> products = publication.getProducts().stream()
-                .map(product -> new ProductItem(product.getId(), product.getName(), product.getQuantity(), product.getSalePrice(), product.getCategory().getName().name(), product.getPhotoUrl()))
-                .toList();
+        List<ProductItem> products = ProductMapper.toProductItem(publication.getProducts());
+        List<MediaContentRequest> mediaContent = PublicationMapper.toMediaContent(publication.getMedia());
 
-        List<MediaContentRequest> mediaContent = publication.getMedia().stream()
-                .map(media -> new MediaContentRequest(media.getMediaType(), media.getMediaUrl(), media.getDisplayOrder()))
-                .toList();
-
-        boolean isPublished = publication.getStatus() == PublicationStatus.PUBLISHED;
-
-        return new PostDetailResponse(
-                publication.getId(),
-                publication.getTitle(),
-                publication.getDescription(),
-                mediaContent,
-                products,
-                publication.getPostedAt(),
-                publication.getExpiredAt(),
-                isPublished
-        );
+        return PublicationMapper.toPostDetail(publication, mediaContent, products);
     }
 
     @Override
@@ -234,67 +109,146 @@ public class PostServiceImpl implements PostService {
             return;
         }
 
-        throw new ResourceNotFoundException("Publication no encontrada con ID: " + id.value());
+        throw new PostNotFoundException();
     }
 
     @Override
     @Transactional
     public void updatePost(PostId id, UUID userId, PostRequest request) {
-        PublicationEntity publication = publicationRepository.findByIdAndUserId(id.value(), userId)
-                .orElseThrow(() -> new ResourceNotFoundException("No se encontro ninguna publicacion con el ID proporcionado"));
+        PublicationEntity publication = this.findOwnedPublication(id.value(), userId);
 
-        List<UUID> productIds;
-
-        try {
-            productIds = request.products().stream().map(UUID::fromString).toList();
-        } catch (Exception exception) {
-            throw new IllegalArgumentException("Uno o más datos del campo products no es un ID valido");
-        }
-
-        List<ProductEntity> products = productRepository.findAllByIdIn(productIds);
-        publication.getProducts().clear();
-        publication.getProducts().addAll(products);
-
-        var tagNames = request.tags().stream().map(TagName::valueOf).toList();
-        List<TagEntity> tags = tagRepository.findAllByNameIn(tagNames);
-        if (!tags.isEmpty()) {
-            publication.getTags().clear();
-            publication.getTags().addAll(tags);
-        }
+        this.replaceProductsInPublication(publication, request.products());
+        this.replaceTagsInPublication(publication, request.tags());
+        this.replaceMediaContentInPublication(publication, request.mediaContent());
 
         publication.setTitle(request.title());
         publication.setDescription(request.description());
         publication.setExpiredAt(request.expirationDate());
-
-        var publicationMediaEntities = request.mediaContent().stream()
-                .map(media ->
-                        PublicationMediaEntity.builder()
-                                .mediaType(media.mediaType())
-                                .mediaUrl(media.mediaKey())
-                                .displayOrder(media.orderNumber())
-                                .publication(publication)
-                                .build()
-                )
-                .toList();
-
-        publication.getMedia().clear();
-        publication.getMedia().addAll(publicationMediaEntities);
 
         publicationRepository.save(publication);
     }
 
     @Override
     public void changePostStatus(PostId id, UUID userId, String status) {
-        PublicationEntity publication = publicationRepository.findByIdAndUserId(id.value(), userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Publicación no encontrada con ID: " + id.value()));
-
+        PublicationEntity publication = this.findOwnedPublication(id.value(), userId);
         PublicationStatus newStatus = PublicationStatus.valueOf(status.toUpperCase());
 
-        if (newStatus == PublicationStatus.EXPIRED) {
+        boolean isChangingToExpired = newStatus == PublicationStatus.EXPIRED;
+        if (isChangingToExpired) {
             publication.setExpiredAt(Instant.now());
         }
 
         publication.setStatus(newStatus);
         publicationRepository.save(publication);
+    }
+
+    private Page<PublicationEntity> searchPublications(PostRequestParams params, UUID universityId) {
+        Cursor cursor = CursorUtils.decodeCursor(params.cursor());
+
+        Specification<PublicationEntity> specification = Specification
+                .where(PublicationSpecification.withUniversityId(universityId))
+                .and(PublicationSpecification.withoutPublished())
+                .and(PublicationSpecification.withSearch(params.search()))
+                .and(PublicationSpecification.withOutOfStock(params.isOutOfStock()))
+                .and(PublicationSpecification.withCursor(cursor.postId(), cursor.postedAt()));
+
+        return publicationRepository.findAll(specification, params.pageable());
+    }
+
+    private Page<PublicationEntity> findPublicationsByUser(UUID userId, String cursor, Pageable pageable) {
+        Cursor decodedCursor = CursorUtils.decodeCursor(cursor);
+
+        Specification<PublicationEntity> specification = Specification
+                .where(PublicationSpecification.withUserId(userId))
+                .and(PublicationSpecification.withCursor(decodedCursor.postId(), decodedCursor.postedAt()));
+
+        return publicationRepository.findAll(specification, pageable);
+    }
+
+    private String generateNextCursor(List<PostSummaryResponse> posts, boolean hasNext) {
+        String encodedCursor = null;
+
+        if (hasNext) {
+            PostSummaryResponse lastPost = posts.getLast();
+            encodedCursor = CursorUtils.encodeCursor(lastPost.id(), lastPost.postedAt());
+        }
+
+        return encodedCursor;
+    }
+
+    private PublicationEntity findPublicationById(UUID id) {
+        return publicationRepository.findById(id)
+                .orElseThrow(PostNotFoundException::new);
+    }
+
+    private PublicationEntity findOwnedPublication(UUID id, UUID userId) {
+        return publicationRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(PostNotFoundException::new);
+    }
+
+    private List<ProductEntity> findProductsByIds(List<String> productIds) {
+        List<UUID> productUids;
+
+        try {
+            productUids = productIds.stream().map(UUID::fromString).toList();
+        } catch (Exception exception) {
+            throw new InvalidArgumentException("products", "Uno o más IDs de productos no es un ID de tipo UUID valido");
+        }
+
+        return productRepository.findAllByIdIn(productUids);
+    }
+
+    private void replaceProductsInPublication(PublicationEntity publication, List<String> productIds) {
+        List<ProductEntity> products = this.findProductsByIds(productIds);
+
+        if (!products.isEmpty()) {
+            publication.getProducts().clear();
+            publication.getProducts().addAll(products);
+        }
+    }
+
+    private List<TagEntity> findTagsByNames(List<String> tagNames) {
+        var tags = tagNames.stream().map(TagName::valueOf).toList();
+        return tagRepository.findAllByNameIn(tags);
+    }
+
+    private void replaceTagsInPublication(PublicationEntity publication, List<String> tagNames) {
+        var tags = this.findTagsByNames(tagNames);
+
+        if (!tags.isEmpty()) {
+            publication.getTags().clear();
+            publication.getTags().addAll(tags);
+        }
+    }
+
+    private List<PublicationMediaEntity> createPublicationMediaList(PublicationEntity publication, List<MediaContentRequest> mediaContentRequest) {
+        return mediaContentRequest.stream()
+                .map(media -> PublicationMapper.toPublicationMedia(media, publication))
+                .toList();
+
+    }
+
+    private void replaceMediaContentInPublication(PublicationEntity publication, List<MediaContentRequest> mediaContentRequest) {
+        var publicationMediaEntities = this.createPublicationMediaList(publication, mediaContentRequest);
+        publication.getMedia().clear();
+        publication.getMedia().addAll(publicationMediaEntities);
+    }
+
+    private PublicationEntity buildPublication(PostRequest request, UUID userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + userId));
+        List<ProductEntity> products = this.findProductsByIds(request.products());
+        List<TagEntity> tags = this.findTagsByNames(request.tags());
+
+        return PublicationMapper.toPublication(request, user, products, tags);
+    }
+
+    private DataPaginationResponse<PostSummaryResponse> toDataPaginationResponse(Page<PublicationEntity> publications, Pageable pageable) {
+        List<PostSummaryResponse> posts = PublicationMapper.toPostSummary(publications.getContent());
+
+        boolean hasNext = publications.hasNext();
+        String cursor = this.generateNextCursor(posts, hasNext);
+
+        return new DataPaginationResponse<>(posts, cursor, hasNext);
     }
 }
