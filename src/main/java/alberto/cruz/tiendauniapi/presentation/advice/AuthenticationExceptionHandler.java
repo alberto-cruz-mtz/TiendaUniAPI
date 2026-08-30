@@ -3,11 +3,13 @@ package alberto.cruz.tiendauniapi.presentation.advice;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegisteredException;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressNotFound;
 import alberto.cruz.tiendauniapi.service.exception.EmailDomainNotAllowedException;
+import alberto.cruz.tiendauniapi.service.exception.InvalidTokenException;
 import alberto.cruz.tiendauniapi.service.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -50,6 +52,17 @@ public class AuthenticationExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, exception.getMessage());
         problemDetail.setTitle("Email Domain Not Allowed");
         problemDetail.setType(URI.create(GlobalExceptionHandler.DOMAIN_URI + "/email-domain-not-allowed"));
+        return ResponseEntity.status(status).body(problemDetail);
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidToken(AuthenticationException exception) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, "No se pudo autenticar la solicitud. Por favor, asegúrate de que el token de acceso sea válido y esté presente en la cookie 'access-token'.");
+        problemDetail.setTitle("Error de Autenticación");
+        problemDetail.setType(URI.create(GlobalExceptionHandler.DOMAIN_URI + "/unauthorized"));
+
         return ResponseEntity.status(status).body(problemDetail);
     }
 }
