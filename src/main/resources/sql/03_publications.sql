@@ -23,10 +23,11 @@ CREATE TABLE IF NOT EXISTS "publications"
     "id"          UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
     "title"       VARCHAR(120)     NOT NULL,
     "description" VARCHAR(350)     NOT NULL,
+    "status"      VARCHAR(20)      NOT NULL,
     "created_at"  TIMESTAMPTZ      NOT NULL DEFAULT now(),
     "posted_at"   TIMESTAMPTZ,
-    "user_id"     UUID             NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    "hidden"      BOOLEAN          NOT NULL DEFAULT FALSE
+    "expired_at"  TIMESTAMPTZ      NOT NULL,
+    "user_id"     UUID             NOT NULL REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS "publication_media"
