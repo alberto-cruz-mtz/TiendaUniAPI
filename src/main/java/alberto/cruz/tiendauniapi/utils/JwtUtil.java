@@ -58,6 +58,14 @@ public class JwtUtil {
         }
     }
 
+    public String getUserIdFromToken(DecodedJWT token) {
+        return token.getClaim("userId").asString();
+    }
+
+    public String getTenantIdFromToken(DecodedJWT token) {
+        return token.getClaim("tenantId").asString();
+    }
+
     private String createToken(AuthenticatedUser user, Instant issuedAt) {
         return JWT.create()
                 .withIssuer(issuer)

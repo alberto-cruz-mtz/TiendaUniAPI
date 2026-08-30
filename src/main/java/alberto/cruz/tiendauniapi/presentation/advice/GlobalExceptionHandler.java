@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.net.URI;
+import java.nio.file.AccessDeniedException;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,6 +30,17 @@ public class GlobalExceptionHandler {
     public static final String DOMAIN_URI = "https://tiendauniapi.com/problems";
 
     private static final String GENERIC_VALIDATION_DETAIL = "Uno o más campos no cumplen con las reglas de validación.";
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDeniedException(AccessDeniedException ex) {
+        HttpStatus status = HttpStatus.FORBIDDEN;
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
+        problemDetail.setTitle("Acceso Denegado");
+        problemDetail.setType(URI.create(DOMAIN_URI + "/forbidden"));
+        problemDetail.setProperty("reason", "No tienes los permisos o roles necesarios para acceder a este recurso.");
+        return ResponseEntity.status(status).body(problemDetail);
+    }
 
     @ExceptionHandler(UnknownException.class)
     public ResponseEntity<ProblemDetail> handleUnknownException(UnknownException exception) {
@@ -77,6 +89,18 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, message);
         problemDetail.setType(URI.create(DOMAIN_URI + "/validations"));
         problemDetail.setTitle("Validation Failed");
+
+        return ResponseEntity.status(status).body(problemDetail);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ProblemDetail> handleIllegalArgumentException(IllegalArgumentException ex) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, GENERIC_VALIDATION_DETAIL);
+        problemDetail.setType(URI.create(DOMAIN_URI + "/invalid-argument"));
+        problemDetail.setTitle("Invalid Argument");
+        problemDetail.setProperty("errors", new IncorrectField("argument", ex.getMessage()));
 
         return ResponseEntity.status(status).body(problemDetail);
     }
