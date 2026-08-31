@@ -1,5 +1,7 @@
 package alberto.cruz.tiendauniapi.presentation.dto;
 
+import alberto.cruz.tiendauniapi.persistence.entity.SaleType;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -8,7 +10,8 @@ public record ProductItem(
         String name,
         BigDecimal quantity,
         BigDecimal salePrice,
-        String categoryName,
+        String category,
+        SaleType saleType,
         String photoUrl
 ) {
 }

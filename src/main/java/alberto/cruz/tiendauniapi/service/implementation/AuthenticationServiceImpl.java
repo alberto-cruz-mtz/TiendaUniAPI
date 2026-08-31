@@ -6,17 +6,15 @@ import alberto.cruz.tiendauniapi.persistence.entity.UserEntity;
 import alberto.cruz.tiendauniapi.persistence.model.AuthenticatedUser;
 import alberto.cruz.tiendauniapi.persistence.projection.UserProjection;
 import alberto.cruz.tiendauniapi.persistence.repository.UniversityRepository;
-import alberto.cruz.tiendauniapi.persistence.repository.UserRepository;
 import alberto.cruz.tiendauniapi.presentation.dto.AuthenticationResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.RegisterRequest;
 import alberto.cruz.tiendauniapi.presentation.dto.RegisterResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.TokenBundle;
 import alberto.cruz.tiendauniapi.service.exception.EmailAddressAlreadyRegisteredException;
 import alberto.cruz.tiendauniapi.service.exception.EmailDomainNotAllowedException;
-import alberto.cruz.tiendauniapi.service.exception.EmailAddressNotFound;
-import alberto.cruz.tiendauniapi.service.exception.UserNotFoundException;
 import alberto.cruz.tiendauniapi.service.interfaces.AuthenticationService;
 import alberto.cruz.tiendauniapi.service.interfaces.RefreshTokenService;
+import alberto.cruz.tiendauniapi.service.interfaces.UserService;
 import alberto.cruz.tiendauniapi.utils.JwtUtil;
 import alberto.cruz.tiendauniapi.utils.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,20 +25,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
 
-    private final UserRepository userRepository;
     private final UniversityRepository universityRepository;
 
     private final RefreshTokenService refreshTokenService;
-    private final JwtUtil jwtUtil;
+    private final UserService userService;
 
+    private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
 
@@ -53,7 +49,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String encodedPassword = passwordEncoder.encode(request.password());
         UserEntity user = this.createUser(request, university, encodedPassword);
 
-        UserEntity savedUser = userRepository.save(user);
+        UserEntity savedUser = userService.saveUser(user);
 
         AuthenticatedUser authenticatedUser = UserMapper.toAuthenticatedUser(savedUser);
         TokenBundle tokens = this.generateAccessAndRefreshToken(authenticatedUser, savedUser.getId());
@@ -66,7 +62,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponse authenticate(String email, String password) {
         Authentication authentication = this.authenticateUserByCredentials(email, password);
 
-        UserEntity user = this.findUserByEmail(email);
+        UserEntity user = userService.getUserByEmail(email);
         TokenBundle tokens = this.generateAccessAndRefreshToken(authentication, user.getId());
 
         return this.createAuthenticationResponse(user, tokens);
@@ -75,8 +71,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public TokenBundle refreshTokenAndGenerateAccessToken(UUID refreshToken, UUID userId) {
-        UserProjection user = userRepository.findUserEntitiesById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        UserProjection user = userService.getUserProjectionById(userId);
 
         String newRefreshToken = refreshTokenService.refreshToken(refreshToken, userId);
         AuthenticatedUser authenticatedUser = UserMapper.toAuthenticatedUser(user);
@@ -94,10 +89,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public void updateAvatarKey(UUID userId, String key) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        UserEntity user = userService.getUserById(userId);
         user.setAvatarUrl(key);
-        userRepository.save(user);
+        userService.saveUser(user);
     }
 
     private String extractEmailDomain(String email) {
@@ -109,7 +103,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     private void ensureThatEmailAddressIsNotRegistered(String email) {
-        if (userRepository.existsByEmail(email)) {
+        if (userService.existsUserByEmail(email)) {
             throw new EmailAddressAlreadyRegisteredException();
         }
     }
@@ -164,11 +158,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // compara la contraseña en texto plano contra el hash de la BD
         // y lanza BadCredentialsException si no coincide.
         return authenticationManager.authenticate(credentials);
-    }
-
-    private UserEntity findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new EmailAddressNotFound(email));
     }
 
     private AuthenticationResponse createAuthenticationResponse(UserEntity user, TokenBundle tokens) {

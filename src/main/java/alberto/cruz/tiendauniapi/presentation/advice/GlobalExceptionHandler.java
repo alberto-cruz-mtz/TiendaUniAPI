@@ -2,6 +2,7 @@ package alberto.cruz.tiendauniapi.presentation.advice;
 
 import alberto.cruz.tiendauniapi.common.UnknownException;
 import alberto.cruz.tiendauniapi.presentation.dto.IncorrectField;
+import alberto.cruz.tiendauniapi.service.exception.InvalidArgumentException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.NestedRuntimeException;
@@ -113,6 +114,20 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, "Ocurrió un error inesperado. Por favor, intente nuevamente más tarde.");
         problemDetail.setTitle("Unknown Exception");
         problemDetail.setType(URI.create(DOMAIN_URI + "/unknown-exception"));
+
+        return ResponseEntity.status(status).body(problemDetail);
+    }
+
+    @ExceptionHandler(InvalidArgumentException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidArgumentException(InvalidArgumentException exception) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, exception.getMessage());
+        problemDetail.setType(URI.create(DOMAIN_URI + "/validations"));
+        problemDetail.setTitle("Validation Failed");
+
+        IncorrectField incorrectField = new IncorrectField(exception.getArgumentName(), exception.getMessage());
+        problemDetail.setProperty("errors", incorrectField);
 
         return ResponseEntity.status(status).body(problemDetail);
     }
