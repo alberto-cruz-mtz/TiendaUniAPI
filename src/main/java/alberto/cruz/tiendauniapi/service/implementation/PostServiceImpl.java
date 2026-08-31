@@ -11,7 +11,6 @@ import alberto.cruz.tiendauniapi.persistence.repository.ProductRepository;
 import alberto.cruz.tiendauniapi.persistence.repository.PublicationMediaRepository;
 import alberto.cruz.tiendauniapi.persistence.repository.PublicationRepository;
 import alberto.cruz.tiendauniapi.persistence.repository.TagRepository;
-import alberto.cruz.tiendauniapi.persistence.repository.UserRepository;
 import alberto.cruz.tiendauniapi.persistence.specification.PublicationSpecification;
 import alberto.cruz.tiendauniapi.presentation.dto.DataPaginationResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.MediaContentRequest;
@@ -25,6 +24,7 @@ import alberto.cruz.tiendauniapi.service.exception.PostAlreadyPublishedException
 import alberto.cruz.tiendauniapi.service.exception.PostNotFoundException;
 import alberto.cruz.tiendauniapi.service.helper.CursorUtils;
 import alberto.cruz.tiendauniapi.service.interfaces.PostService;
+import alberto.cruz.tiendauniapi.service.interfaces.UserService;
 import alberto.cruz.tiendauniapi.service.model.Cursor;
 import alberto.cruz.tiendauniapi.service.model.PostId;
 import alberto.cruz.tiendauniapi.utils.mapper.ProductMapper;
@@ -47,7 +47,7 @@ public class PostServiceImpl implements PostService {
     private final PublicationRepository publicationRepository;
     private final PublicationMediaRepository publicationMediaRepository;
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final TagRepository tagRepository;
 
     @Override
@@ -235,8 +235,7 @@ public class PostServiceImpl implements PostService {
     }
 
     private PublicationEntity buildPublication(PostRequest request, UUID userId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + userId));
+        UserEntity user = userService.getUserById(userId);
         List<ProductEntity> products = this.findProductsByIds(request.products());
         List<TagEntity> tags = this.findTagsByNames(request.tags());
 
