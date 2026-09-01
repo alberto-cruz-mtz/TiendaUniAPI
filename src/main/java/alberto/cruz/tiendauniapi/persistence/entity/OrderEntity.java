@@ -1,6 +1,7 @@
 package alberto.cruz.tiendauniapi.persistence.entity;
 
 import alberto.cruz.tiendauniapi.common.AuditableEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -43,6 +44,9 @@ public class OrderEntity extends AuditableEntity {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
+    @Column(name = "client_key", nullable = false, unique = true)
+    private UUID clientKey;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 20)
     private PaymentMethod paymentMethod;
@@ -57,7 +61,7 @@ public class OrderEntity extends AuditableEntity {
     @Column(name = "status", nullable = false, length = 30)
     private OrderStatus status;
 
-    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @Builder.Default
     private List<ProductOrderEntity> productOrders = new ArrayList<>();
 }
