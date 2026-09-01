@@ -67,9 +67,10 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PostDetailResponse> getPostById(@PathVariable("id") String id) {
+    public ResponseEntity<PostDetailResponse> getPostById(@PathVariable("id") String id, @RequestParam(required = false) String cursor, @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
         PostId postId = new PostId(id);
-        PostDetailResponse post = postService.getPostById(postId, null);
+        UUID universityId = authenticatedUser.getUniversityId();
+        PostDetailResponse post = postService.getPostById(postId, universityId);
 
         return ResponseEntity.ok(post);
     }
