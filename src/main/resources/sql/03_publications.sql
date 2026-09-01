@@ -50,13 +50,16 @@ CREATE TABLE IF NOT EXISTS "orders"
 (
     "id"                UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
     "user_id"           UUID             NOT NULL REFERENCES users (id) ON DELETE SET NULL,
-    "created_at"        TIMESTAMPTZ      NOT NULL DEFAULT now(),
-    "updated_at"        TIMESTAMPTZ      NOT NULL DEFAULT now(),
+    "client_key"        UUID UNIQUE      NOT NULL,
     "payment_method"    VARCHAR(20)      NOT NULL,
     "amount_paid"       NUMERIC(10, 2),
     "payment_proof_url" VARCHAR(300),
-    "status"            VARCHAR(30)      NOT NULL
+    "status"            VARCHAR(30)      NOT NULL,
+    "created_at"        TIMESTAMPTZ      NOT NULL DEFAULT now(),
+    "updated_at"        TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_client_key ON orders (client_key);
 
 CREATE TABLE IF NOT EXISTS "product_order"
 (
