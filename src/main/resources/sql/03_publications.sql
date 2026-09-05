@@ -56,7 +56,8 @@ CREATE TABLE IF NOT EXISTS "orders"
     "payment_proof_url" VARCHAR(300),
     "status"            VARCHAR(30)      NOT NULL,
     "created_at"        TIMESTAMPTZ      NOT NULL DEFAULT now(),
-    "updated_at"        TIMESTAMPTZ      NOT NULL DEFAULT now()
+    "updated_at"        TIMESTAMPTZ      NOT NULL DEFAULT now(),
+    "publication_id"    UUID             NOT NULL REFERENCES publications (id) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_client_key ON orders (client_key);

@@ -61,7 +61,11 @@ public class OrderEntity extends AuditableEntity {
     @Column(name = "status", nullable = false, length = 30)
     private OrderStatus status;
 
-    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "order", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @Builder.Default
     private List<ProductOrderEntity> productOrders = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY, targetEntity = PublicationEntity.class, optional = false)
+    @JoinColumn(name = "publication_id")
+    private PublicationEntity publication;
 }
