@@ -4,15 +4,17 @@ import alberto.cruz.tiendauniapi.persistence.entity.OrderStatus;
 import alberto.cruz.tiendauniapi.persistence.entity.PaymentMethod;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public record OrderDetailResponse(
+public record PostOrderDetail(
         UUID orderId,
-        UUID postId,
+        UserSummary user,
         OrderStatus status,
-        BigDecimal totalAmount,
+        BigDecimal amountPaid,
         PaymentMethod paymentMethod,
-        List<ProductOrderDetailResponse> items
+        List<ProductOrderDetailResponse> products,
+        Instant orderDate
 ) {
 }
