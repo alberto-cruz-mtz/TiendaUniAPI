@@ -5,16 +5,21 @@ import alberto.cruz.tiendauniapi.persistence.entity.OrderStatus;
 import alberto.cruz.tiendauniapi.persistence.entity.PaymentMethod;
 import alberto.cruz.tiendauniapi.persistence.entity.ProductEntity;
 import alberto.cruz.tiendauniapi.persistence.entity.ProductOrderEntity;
+import alberto.cruz.tiendauniapi.persistence.entity.PublicationEntity;
 import alberto.cruz.tiendauniapi.persistence.entity.UserEntity;
 import alberto.cruz.tiendauniapi.persistence.repository.OrderRepository;
 import alberto.cruz.tiendauniapi.persistence.repository.ProductRepository;
+import alberto.cruz.tiendauniapi.persistence.repository.PublicationRepository;
+import alberto.cruz.tiendauniapi.presentation.dto.DataPaginationResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.OrderRequest;
 import alberto.cruz.tiendauniapi.presentation.dto.OrderResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.OrderDetailResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.OrderSummaryResponse;
+import alberto.cruz.tiendauniapi.presentation.dto.PostOrderDetail;
 import alberto.cruz.tiendauniapi.presentation.dto.ProductOrderDetailResponse;
 import alberto.cruz.tiendauniapi.presentation.dto.ProductOrderItem;
 import alberto.cruz.tiendauniapi.presentation.dto.ProductOrderSummaryResponse;
+import alberto.cruz.tiendauniapi.presentation.dto.UserSummary;
 import alberto.cruz.tiendauniapi.service.exception.InsufficientProductStockException;
 import alberto.cruz.tiendauniapi.service.exception.OrderNotFoundException;
 import alberto.cruz.tiendauniapi.service.exception.ProductNotFoundException;
@@ -22,13 +27,17 @@ import alberto.cruz.tiendauniapi.service.exception.ProductPriceChangedException;
 import alberto.cruz.tiendauniapi.service.interfaces.OrderService;
 import alberto.cruz.tiendauniapi.service.interfaces.UserService;
 import alberto.cruz.tiendauniapi.service.model.ClientOrderKey;
+import alberto.cruz.tiendauniapi.service.model.PostId;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -42,6 +51,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserService userService;
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final PublicationRepository publicationRepository;
 
     @Override
     @Transactional
@@ -55,6 +65,10 @@ public class OrderServiceImpl implements OrderService {
         List<UUID> productIds = request.items().stream()
                 .map(ProductOrderItem::getProductIdAsUUID)
                 .toList();
+
+        PostId postId = new PostId(request.postId());
+        PublicationEntity publication = publicationRepository.findById(postId.value())
+                .orElseThrow(ProductNotFoundException::new);
 
         List<ProductEntity> products = productRepository.findAllById(productIds);
 
@@ -80,6 +94,7 @@ public class OrderServiceImpl implements OrderService {
                 .amountPaid(request.totalAmount())
                 .paymentProofUrl(request.paymentProof())
                 .status(status)
+                .publication(publication)
                 .build();
 
         Map<UUID, ProductEntity> productMap = products.stream()
@@ -122,6 +137,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderDetailResponse getOrderById(UUID orderId, UUID userId) {
         OrderEntity order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(OrderNotFoundException::new);
@@ -141,6 +157,7 @@ public class OrderServiceImpl implements OrderService {
 
         return new OrderDetailResponse(
                 order.getId(),
+                order.getPublication().getId(),
                 order.getStatus(),
                 order.getAmountPaid(),
                 order.getPaymentMethod(),
@@ -149,10 +166,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderSummaryResponse> getOrdersByUserId(UUID userId) {
-        List<OrderEntity> orders = orderRepository.findAllByUserId(userId);
+    @Transactional(readOnly = true)
+    public DataPaginationResponse<OrderSummaryResponse> getOrdersByUserId(UUID userId, Pageable pageable) {
+        Slice<OrderEntity> orders = orderRepository.findAllByUserId(userId, pageable);
 
-        return orders.stream()
+        boolean hasNext = orders.hasNext();
+        String cursor = hasNext ? "/orders?page=" + (pageable.getPageNumber() + 1) : null;
+        List<OrderSummaryResponse> orderList = orders.stream()
                 .map(order -> {
                     List<ProductOrderSummaryResponse> productOrderSummaries = order.getProductOrders().stream()
                             .map(productOrder -> new ProductOrderSummaryResponse(
@@ -170,8 +190,45 @@ public class OrderServiceImpl implements OrderService {
                     );
                 })
                 .toList();
+
+        return new DataPaginationResponse<>(orderList, cursor, hasNext);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public DataPaginationResponse<PostOrderDetail> getOrdersByPostId(PostId postId, Pageable pageable, UUID userId) {
+        Slice<OrderEntity> orders = orderRepository.findAllByPublicationIdAndUserId(postId.value(), userId, pageable);
+
+        boolean hasNext = orders.hasNext();
+        String cursor = hasNext ? "/orders/posts?page=" + (pageable.getPageNumber() + 1) : null;
+
+        List<PostOrderDetail> orderList = orders.stream()
+                .map(order -> {
+                    List<ProductOrderDetailResponse> productOrderSummaries = order.getProductOrders().stream()
+                            .map(productOrder -> new ProductOrderDetailResponse(
+                                    productOrder.getProduct().getPhotoUrl(),
+                                    productOrder.getProduct().getName(),
+                                    productOrder.getQuantity(),
+                                    productOrder.getUnitPrice()
+                            ))
+                            .toList();
+
+                    String fullName = order.getUser().getFirstName() + " " + order.getUser().getLastName();
+                    UserSummary user = new UserSummary(order.getUser().getAvatarUrl(), fullName);
+
+                    return new PostOrderDetail(
+                            order.getId(),
+                            user,
+                            order.getStatus(),
+                            order.getAmountPaid(),
+                            order.getPaymentMethod(),
+                            productOrderSummaries,
+                            order.getCreatedAt()
+                    );
+                }).toList();
+
+        return new DataPaginationResponse<>(orderList, cursor, hasNext);
+    }
 
     private static boolean isUnlimitedStock(BigDecimal quantity) {
         return quantity.compareTo(UNLIMITED_STOCK_MIN) >= 0
